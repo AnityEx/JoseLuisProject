@@ -8,8 +8,18 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Bot de Telegram",
   "dependencies": {
+    "dotenv": "^17.2.2",
+    "mongodb": "^6.20.0",
     "node-telegram-bot-api": "^0.66.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnityEx/JoseLuisProject.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AnityEx/JoseLuisProject/issues"
+  },
+  "homepage": "https://github.com/AnityEx/JoseLuisProject#readme"
 }
