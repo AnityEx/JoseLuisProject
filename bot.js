@@ -21,10 +21,10 @@ bot.on('message', (msg) => {
     
     if (text === '/secret') {
         bot.sendMessage(chatId, `alav conoces la llave 👀`);
-        bot.sendDocument(chatId, fs.createReadStream('pdf/Proyect002.pdf'));
-    }
+/*         bot.sendDocument(chatId, fs.createReadStream('pdf/Proyect002.pdf'));
+ */    }
     else if (text !== '/start') {
         bot.sendMessage(chatId, `Dijiste: "${text}" 👀`);
-        bot.sendPhoto(chatId, fs.createReadStream('img/kirbo.jpg'));
+/*         bot.sendPhoto(chatId, fs.createReadStream('img/kirbo.jpg')); */
     }
 });
