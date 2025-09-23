@@ -1,10 +1,13 @@
+/* LIBRERIAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
 const fuzzysort = require('fuzzysort');
 
+/* TOKEN Y BOT DE TELEGRAM */
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
 const bot = new TelegramBot(token, { polling: true });
 
-const heuristicas = [
+/* PALABRAS CLAVE A DETECTAR CON FUZZYSORT */
+const sospechas = [
     'urgente',
     'actualice',
     'datos',
@@ -13,8 +16,9 @@ const heuristicas = [
     'identidad',
 ];
 
-// Umbral de detección: fuzzy <= -10 será considerado sospechoso
-const FUZZY_THRESHOLD = -20;
+// Umbral de detección que tan similar son los mensajes a las sospechas
+const similar_fuzzy = -20;
+
 
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
@@ -24,11 +28,11 @@ bot.on('message', (msg) => {
 
     const coincidencias = [];
 
-    heuristicas.forEach(keyword => {
+    sospechas.forEach(keyword => {
         const result = fuzzysort.single(keyword, texto);
         if (result) {
             console.log(`🔍 Palabra: "${keyword}" → Score: ${result.score}`);
-            if (result.score <= FUZZY_THRESHOLD) {
+            if (result.score <= similar_fuzzy) {
                 coincidencias.push(keyword);
             }
         } else {
