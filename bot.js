@@ -7,13 +7,19 @@ const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
 const bot = new TelegramBot(token, { polling: true });
 
 /* PALABRAS CLAVE A DETECTAR CON STRING SIMILARITY */
-const sospechas = [
+const arregloPalabras = [
     'urgente',
     'actualice',
     'datos',
     'bloqueada',
     'verifique',
     'identidad',
+    'datos',
+    'codigo',
+    'escriba el codigo',
+    'enlace',
+    'escriba sus credenciales',
+    'login',
 ];
 
 // Umbral de detección que tan similar son los mensajes a las sospechas (0 poco) (1 mucho)
@@ -26,17 +32,17 @@ bot.on('message', (msg) => {
     const texto = (msg.text || '').toLowerCase();
 
     console.log(`Mensaje recibido: "${texto}"`);
-    const palabras = texto.split(/\s+/); // separa el mensaje en palabras
+    const mensaje = texto.split(/\s+/); // separa el mensaje en palabras
 
     //arreglo donde se guardaran las palabras sospechosas
     const coincidencias = [];
 
-    //si el resultado de la busqueda de sospechas por palabra es 
-    palabras.forEach(palabra => {
-        sospechas.forEach(sospechosa => {
-            const sim = stringSimilarity.compareTwoStrings(palabra, sospechosa);
+    //si hay palabras que coinciden entonces va a darles porccentaje de aproximación
+    mensaje.forEach(palabraMensaje => {
+        arregloPalabras.forEach(palabraClave => {
+            const sim = stringSimilarity.compareTwoStrings(palabraMensaje, palabraClave);
             if (sim >= similaridad) {
-                coincidencias.push(`${palabra} ≈ ${sospechosa} (${(sim * 100).toFixed(1)}%)`);
+                coincidencias.push(`${palabraMensaje} ≈ ${palabraClave} (${(sim * 100).toFixed(1)}%)`);
             }
         });
     });
