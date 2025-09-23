@@ -1,38 +1,44 @@
 const TelegramBot = require('node-telegram-bot-api');
-const fs = require('fs');
-const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';
+const fuzzysort = require('fuzzysort');
 
+const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
 const bot = new TelegramBot(token, { polling: true });
 
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, 'Sospechas de algun fraude? puedo ayudarte!');
-});
+const heuristicas = [
+    'urgente',
+    'actualice',
+    'datos',
+    'bloqueada',
+    'verifique',
+    'identidad',
+];
 
+// Umbral de detección: fuzzy <= -10 será considerado sospechoso
+const FUZZY_THRESHOLD = -20;
 
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
-    const text = msg.text;
+    const texto = (msg.text || '').toLowerCase();
 
+    console.log(`📩 Mensaje recibido: "${texto}"`);
 
-    switch (text) {
-        case '/start':
-            // No hacer nada
-            break;
-        case '/info':
-            bot.sendMessage(chatId, `/info\nLista de comandos:\n---------------------------------------------------------------\n/texto - Revisaré mensajes sospechosos \n/captura - Envia una imagen y lo analizaré`);
-            break;
-        case '/texto':
-            bot.sendMessage(chatId, `Necesitas ayuda? Pon el mensaje de texto que te han enviado en el siguiente chat`);
-            break;
-        case '/captura':
-            bot.sendMessage(chatId, `Necesitas ayuda? Pon la captura que sobre lo que te han enviado en el siguiente chat`)
-            break;
-        default:
-            bot.sendMessage(chatId, `"${text}" no es un comando, usa /info para la lista de comandos`);
+    const coincidencias = [];
 
-            break;
+    heuristicas.forEach(keyword => {
+        const result = fuzzysort.single(keyword, texto);
+        if (result) {
+            console.log(`🔍 Palabra: "${keyword}" → Score: ${result.score}`);
+            if (result.score <= FUZZY_THRESHOLD) {
+                coincidencias.push(keyword);
+            }
+        } else {
+            console.log(`🔍 Palabra: "${keyword}" → No coincidencia`);
+        }
+    });
+
+    if (coincidencias.length > 0) {
+        bot.sendMessage(chatId, `⚠️ Este mensaje es probablemente fraudulento.\nCoincidencias: ${coincidencias.join(', ')}`);
+    } else {
+        bot.sendMessage(chatId, '✅ El mensaje no parece fraudulento.');
     }
-
-
 });
