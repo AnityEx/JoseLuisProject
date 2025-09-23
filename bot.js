@@ -1,12 +1,12 @@
 /* LIBRERIAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
-const fuzzysort = require('fuzzysort');
+const stringSimilarity = require('string-similarity');
 
 /* TOKEN Y BOT DE TELEGRAM */
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
 const bot = new TelegramBot(token, { polling: true });
 
-/* PALABRAS CLAVE A DETECTAR CON FUZZYSORT */
+/* PALABRAS CLAVE A DETECTAR CON STRING SIMILARITY */
 const sospechas = [
     'urgente',
     'actualice',
@@ -17,7 +17,7 @@ const sospechas = [
 ];
 
 // Umbral de detección que tan similar son los mensajes a las sospechas (0 poco) (1 mucho)
-const similar_fuzzy = 0.30;
+const similaridad = 0.45;
 
 
 bot.on('message', (msg) => {
@@ -26,27 +26,23 @@ bot.on('message', (msg) => {
     const texto = (msg.text || '').toLowerCase();
 
     console.log(`Mensaje recibido: "${texto}"`);
+    const palabras = texto.split(/\s+/); // separa el mensaje en palabras
 
     //arreglo donde se guardaran las palabras sospechosas
     const coincidencias = [];
 
     //si el resultado de la busqueda de sospechas por palabra es 
-    sospechas.forEach(palabra => {
-        const result = fuzzysort.single(palabra, texto);
-        if (result) {
-            console.log(`🔍 Palabra: "${palabra}" → Score: ${result.score}`);
-            if (result.score >= similar_fuzzy) {
-                coincidencias.push(palabra);
+    palabras.forEach(palabra => {
+        sospechas.forEach(sospechosa => {
+            const sim = stringSimilarity.compareTwoStrings(palabra, sospechosa);
+            if (sim >= similaridad) {
+                coincidencias.push(`${palabra} ≈ ${sospechosa} (${(sim * 100).toFixed(1)}%)`);
             }
-        } else {
-            console.log(`🔍 Palabra: "${palabra}" → No coincidencia`);
-        }
-
-
+        });
     });
 
     if (coincidencias.length > 0) {
-        bot.sendMessage(chatId, `⚠️ Este mensaje es probablemente fraudulento.\nCoincidencias: ${coincidencias.join(', ')}`);
+        bot.sendMessage(chatId, `⚠️ Este mensaje es probablemente fraudulento.\nCoincidencias:\n${coincidencias.join('\n')}`);
     } else {
         bot.sendMessage(chatId, '✅ El mensaje no parece fraudulento.');
     }

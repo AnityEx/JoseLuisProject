@@ -11,9 +11,9 @@
   "description": "Bot de Telegram",
   "dependencies": {
     "dotenv": "^17.2.2",
-    "fuzzysort": "^3.1.0",
     "mongodb": "^6.20.0",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "string-similarity": "^4.0.4"
   },
   "repository": {
     "type": "git",
