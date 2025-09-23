@@ -11,7 +11,7 @@
   "description": "Bot de Telegram",
   "dependencies": {
     "dotenv": "^17.2.2",
-    "fuzzysort": "^1.2.1",
+    "fuzzysort": "^3.1.0",
     "mongodb": "^6.20.0",
     "node-telegram-bot-api": "^0.66.0"
   },

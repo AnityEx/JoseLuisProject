@@ -16,28 +16,33 @@ const sospechas = [
     'identidad',
 ];
 
-// Umbral de detección que tan similar son los mensajes a las sospechas
-const similar_fuzzy = -20;
+// Umbral de detección que tan similar son los mensajes a las sospechas (0 poco) (1 mucho)
+const similar_fuzzy = 0.30;
 
 
 bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
+    const chatId = msg.chat.id
+    // la variable texto solo se activa si el mensaje contiene texto, sino queda vacio y resulta en nada
     const texto = (msg.text || '').toLowerCase();
 
-    console.log(`📩 Mensaje recibido: "${texto}"`);
+    console.log(`Mensaje recibido: "${texto}"`);
 
+    //arreglo donde se guardaran las palabras sospechosas
     const coincidencias = [];
 
-    sospechas.forEach(keyword => {
-        const result = fuzzysort.single(keyword, texto);
+    //si el resultado de la busqueda de sospechas por palabra es 
+    sospechas.forEach(palabra => {
+        const result = fuzzysort.single(palabra, texto);
         if (result) {
-            console.log(`🔍 Palabra: "${keyword}" → Score: ${result.score}`);
-            if (result.score <= similar_fuzzy) {
-                coincidencias.push(keyword);
+            console.log(`🔍 Palabra: "${palabra}" → Score: ${result.score}`);
+            if (result.score >= similar_fuzzy) {
+                coincidencias.push(palabra);
             }
         } else {
-            console.log(`🔍 Palabra: "${keyword}" → No coincidencia`);
+            console.log(`🔍 Palabra: "${palabra}" → No coincidencia`);
         }
+
+
     });
 
     if (coincidencias.length > 0) {
