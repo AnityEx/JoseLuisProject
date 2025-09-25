@@ -1,11 +1,18 @@
 /* LIBRERIAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
 const stringSimilarity = require('string-similarity');
+//bd 
 const { connectDB, obtenerPalabrasClave } = require('./db');
+//llamado a la base de datos 
+const base = {MongoDB.uri}
+
 
 /* TOKEN Y BOT DE TELEGRAM */
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
 const bot = new TelegramBot(token, { polling: true });
+
+//conectar a mongo db 
+connectDB();
 
 /* PALABRAS CLAVE A DETECTAR CON STRING SIMILARITY */
 const arregloPalabras = [
@@ -27,7 +34,7 @@ const arregloPalabras = [
 const similaridad = 0.45;
 
 
-bot.on('message', (msg) => {
+bot.on('message', async (msg) => {
     const chatId = msg.chat.id
     // la variable texto solo se activa si el mensaje contiene texto, sino queda vacio y resulta en nada
     const texto = (msg.text || '').toLowerCase();
