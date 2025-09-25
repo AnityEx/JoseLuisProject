@@ -1,6 +1,7 @@
 /* LIBRERIAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
 const stringSimilarity = require('string-similarity');
+const { connectDB, obtenerPalabrasClave } = require('./db');
 
 /* TOKEN Y BOT DE TELEGRAM */
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
