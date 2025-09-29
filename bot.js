@@ -1,52 +1,187 @@
-/* LIBRERIAS NECESARIAS INSTALA COMO NPM */
+/* LIBRERÍAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
 const stringSimilarity = require('string-similarity');
+const db = require('./db'); // Asegúrate de que db.js esté correctamente configurado
 
-const db = require('./db');
-
-//llamado a la base de datos 
-
-/* TOKEN Y BOT DE TELEGRAM */
-const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
+// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
+const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';
 const bot = new TelegramBot(token, { polling: true });
 
-// Umbral de detección que tan similar son los mensajes a las sospechas (0 poco) (1 mucho)
+// Umbral de detección
 const similaridad = 0.45;
 
-/* PALABRAS CLAVE A DETECTAR CON STRING SIMILARITY */
-let arregloPalabras = [];
+// Estadísticas
+let mensajesDetectados = 0;
 
-(async () => {
-    await db.connectDB();
-    arregloPalabras = db.obtenerPalabrasClave();
-    console.log("Bot inicializado con palabras clave:", arregloPalabras.length);
-})();
+// Estado temporal por chat
+const estados = {};
 
+// Función para cargar palabras clave de la base de datos
+async function cargarPalabras() {
+    try {
+        const palabras = await db.obtenerPalabrasClave();
+        return palabras;
+    } catch (err) {
+        console.error("Error al cargar palabras clave:", err);
+        return [];
+    }
+}
 
-bot.on('message', async (msg) => {
-    const chatId = msg.chat.id
-    // la variable texto solo se activa si el mensaje contiene texto, sino queda vacio y resulta en nada
+// Función para manejar el análisis de cada mensaje
+async function analizarMensaje(msg) {
     const texto = (msg.text || '').toLowerCase();
+    const chatId = msg.chat.id;
 
-    console.log(`Mensaje recibido: "${texto}"`);
-    const mensaje = texto.split(/\s+/); // separa el mensaje en palabras
+    const arregloPalabras = await cargarPalabras();
 
-    //arreglo donde se guardaran las palabras sospechosas
+    if (arregloPalabras.length === 0) {
+        bot.sendMessage(chatId, '❌ No se pueden detectar fraudes. No hay palabras clave cargadas.');
+        return;
+    }
+
+    const mensaje = texto.split(/\s+/);
     const coincidencias = [];
 
-    //si hay palabras que coinciden entonces va a darles porccentaje de aproximación
-    mensaje.forEach(palabraMensaje => {
-        arregloPalabras.forEach(palabraClave => {
-            const sim = stringSimilarity.compareTwoStrings(palabraMensaje, palabraClave);
+    for (const palabraMensaje of mensaje) {
+        for (const palabraClave of arregloPalabras) {
+            const sim = stringSimilarity.compareTwoStrings(palabraMensaje, palabraClave.palabra);
             if (sim >= similaridad) {
-                coincidencias.push(`${palabraMensaje} ≈ ${palabraClave} (${(sim * 100).toFixed(1)}%)`);
+                coincidencias.push(`${palabraMensaje} ≈ ${palabraClave.palabra} (${(sim * 100).toFixed(1)}%)`);
             }
-        });
-    });
+        }
+    }
 
     if (coincidencias.length > 0) {
-        bot.sendMessage(chatId, `⚠️ Este mensaje es probablemente fraudulento.\nCoincidencias:\n${coincidencias.join('\n')}`);
+        bot.sendMessage(chatId, `⚠️ **Este mensaje es probablemente fraudulento**.\nCoincidencias:\n${coincidencias.join('\n')}`, { parse_mode: "Markdown" });
+        mensajesDetectados++;
     } else {
-        bot.sendMessage(chatId, '✅ El mensaje no parece fraudulento.');
+        bot.sendMessage(chatId, '✅ El mensaje **no** parece fraudulento.', { parse_mode: "Markdown" });
+    }
+}
+
+// Menú inline
+function generarMenu(chatId) {
+    const menuOptions = {
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' },
+                    { text: '➕ Agregar palabra clave', callback_data: 'add_keyword' }
+                ],
+                [
+                    { text: '🗑️ Eliminar palabra clave', callback_data: 'remove_keyword' },
+                    { text: '🔄 Ver palabras clave', callback_data: 'view_keywords' }
+                ],
+                [
+                    { text: '⚙️ Actualizar palabra clave', callback_data: 'update_keyword' },
+                    { text: '📜 Ayuda', callback_data: 'help' }
+                ]
+            ]
+        }
+    };
+    bot.sendMessage(
+        chatId,
+        '👋 ¡Hola! Soy tu bot de **detección de fraude**.\n\nElige una opción:',
+        { ...menuOptions, parse_mode: "Markdown" }
+    );
+}
+
+// /start
+bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    generarMenu(chatId);
+});
+// --- CALLBACKS ---
+bot.on('callback_query', async (query) => {
+    const chatId = query.message.chat.id;
+    const action = query.data;
+
+    if (action === 'detect_fraud') {
+        estados[chatId] = "detectando"; // activar modo detección
+        bot.sendMessage(chatId, '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.');
+    } else if (action === 'add_keyword') {
+        bot.sendMessage(chatId, '➕ Envía en este formato:\n/agregar [palabra] [nivel_riesgo]');
+    } else if (action === 'remove_keyword') {
+        bot.sendMessage(chatId, '🗑️ Envía en este formato:\n/eliminar [palabra]');
+    } else if (action === 'view_keywords') {
+        const palabras = await db.obtenerPalabrasClave();
+        if (palabras.length === 0) {
+            bot.sendMessage(chatId, '🚫 No hay palabras clave en la base de datos.');
+        } else {
+            const palabrasList = palabras.map(p => `${p.palabra} - Nivel: ${p.nivel_riesgo}`).join('\n');
+            bot.sendMessage(chatId, `🔑 **Palabras clave**:\n${palabrasList}`, { parse_mode: "Markdown" });
+        }
+    } else if (action === 'update_keyword') {
+        bot.sendMessage(chatId, '🔄 Envía en este formato:\n/actualizar [palabra] [nuevo_nivel_riesgo]');
+    } else if (action === 'help') {
+        bot.sendMessage(chatId, '📝 Comandos disponibles:\n/start\n/detectar [mensaje]\n/agregar [palabra] [nivel_riesgo]\n/eliminar [palabra]\n/ver_palabras\n/actualizar [palabra] [nivel_riesgo]');
+    }
+
+    bot.answerCallbackQuery(query.id);
+});
+
+// --- INTERCEPTAR MENSAJES CUANDO ESTÁ EN MODO DETECCIÓN ---
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+
+    // Ignorar si el mensaje es un comando (/algo)
+    if (msg.text && msg.text.startsWith('/')) return;
+
+    if (estados[chatId] === "detectando") {
+        await analizarMensaje(msg);
+        estados[chatId] = null; // limpiar estado
+    }
+});
+// --- COMANDOS ---
+
+bot.onText(/\/detectar (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const texto = match[1];
+    await analizarMensaje({ text: texto, chat: { id: chatId } });
+});
+
+bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const palabra = match[1];
+    const nivelRiesgo = match[2];
+    try {
+        await db.agregarPalabra(palabra, nivelRiesgo);
+        bot.sendMessage(chatId, `✅ La palabra "${palabra}" con nivel "${nivelRiesgo}" ha sido agregada.`);
+    } catch {
+        bot.sendMessage(chatId, '❌ Error al agregar la palabra.');
+    }
+});
+
+bot.onText(/\/eliminar (\w+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const palabra = match[1];
+    try {
+        await db.eliminarPalabra(palabra);
+        bot.sendMessage(chatId, `✅ La palabra "${palabra}" ha sido eliminada.`);
+    } catch {
+        bot.sendMessage(chatId, '❌ Error al eliminar la palabra.');
+    }
+});
+
+bot.onText(/\/ver_palabras/, async (msg) => {
+    const chatId = msg.chat.id;
+    const palabras = await db.obtenerPalabrasClave();
+    if (palabras.length === 0) {
+        bot.sendMessage(chatId, '🚫 No hay palabras clave en la base de datos.');
+    } else {
+        const palabrasList = palabras.map(p => `${p.palabra} - Nivel: ${p.nivel_riesgo}`).join('\n');
+        bot.sendMessage(chatId, `🔑 **Palabras clave**:\n${palabrasList}`, { parse_mode: "Markdown" });
+    }
+});
+
+bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const palabra = match[1];
+    const nuevoNivel = match[2];
+    try {
+        await db.actualizarPalabra(palabra, nuevoNivel);
+        bot.sendMessage(chatId, `✅ La palabra "${palabra}" ahora tiene nivel "${nuevoNivel}".`);
+    } catch {
+        bot.sendMessage(chatId, '❌ Error al actualizar la palabra.');
     }
 });

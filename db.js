@@ -1,61 +1,43 @@
-//se crea el cliente de momgodb oficial 
 const { MongoClient } = require('mongodb');
-//da paso al requerimiento de utilizar la uri en el .env
-require('dotenv').config();
-console.log("🔍 MONGODB_URI desde .env:", process.env.MONGODB_URI);
+require('dotenv').config(); // Asegúrate de que tu archivo .env esté bien configurado
 
-//secrea la constante que almacena la uri  del .env
+// Obtén la URI desde el archivo .env
 const uri = process.env.MONGODB_URI;
 
-//se utiliza el cliente de momgo db para dar accesos 
-const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-});
+const client = new MongoClient(uri, { useUnifiedTopology: true });
 
-let db; // archivo que se esta trabajando actualmente 
-let cachePalabras = []; // cache en memoria
-
+// Función para conectar a MongoDB
 async function connectDB() {
     try {
-        //conecxion con el client de mongo db 
         await client.connect();
-        //se accede especificamente  a la base de datos 
-        db = client.db('detectorEstafas');
-
-        console.log(" Conectado a MongoDB Atlas");
-
-        // Cargar palabras clave una vez al inicio
-        await cargarPalabrasClaveEnCache();
-
-    } catch (err) {
-        console.error("Error al conectar a MongoDB:", err);
+        console.log("Conectado a MongoDB Atlas");
+    } catch (error) {
+        console.error("Error al conectar a MongoDB:", error);
     }
 }
 
-//funcion para solo cargar las palabras una vez y utilizar el cache almacenado 
-async function cargarPalabrasClaveEnCache() {
-    if (!db) throw new Error("Base de datos no conectada.");
-
-    try {
-        //se accede a la coleccion donde se almacenan las palabras 
-        const collection = db.collection('palabras_clave');
-        //se crea el array donde se estara almacenando las plabras para la posterior comparacion 
-        const palabrasObjetos = await collection.find({}).toArray();
-        cachePalabras = palabrasObjetos.map(doc => doc.palabra); // ahora solo strings        console.log(" Palabras clave cargadas en caché:", cachePalabras.length);
-    } catch (err) {
-        console.error(" Error al cargar palabras clave:", err);
-    }
+// Función para obtener palabras clave de la base de datos
+async function obtenerPalabrasClave() {
+    const collection = client.db('detectorEstafas').collection('palabras_clave');
+    return await collection.find({ "activo": true }).toArray();  // Obtén las palabras activas
 }
 
-// Esta función solo devuelve el cache actual
-function obtenerPalabrasClave() {
-    return cachePalabras;
+// Función para agregar una palabra clave
+async function agregarPalabra(palabra, nivel_riesgo) {
+    const collection = client.db('detectorEstafas').collection('palabras_clave');
+    await collection.insertOne({ palabra, nivel_riesgo, activo: true });
 }
 
-//permite exportar nuestra funcion en el bot.js 
-module.exports = {
-    connectDB,
-    obtenerPalabrasClave,
-    cargarPalabrasClaveEnCache, // opcional, si quieres recargar cache en algún momento
-};
+// Función para eliminar una palabra clave
+async function eliminarPalabra(palabra) {
+    const collection = client.db('detectorEstafas').collection('palabras_clave');
+    await collection.deleteOne({ palabra });
+}
+
+// Función para actualizar el nivel de riesgo de una palabra clave
+async function actualizarPalabra(palabra, nuevoNivel) {
+    const collection = client.db('detectorEstafas').collection('palabras_clave');
+    await collection.updateOne({ palabra }, { $set: { nivel_riesgo: nuevoNivel } });
+}
+
+module.exports = { connectDB, obtenerPalabrasClave, agregarPalabra, eliminarPalabra, actualizarPalabra };
