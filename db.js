@@ -2,6 +2,7 @@
 const { MongoClient } = require('mongodb');
 //da paso al requerimiento de utilizar la uri en el .env
 require('dotenv').config();
+console.log("🔍 MONGODB_URI desde .env:", process.env.MONGODB_URI);
 
 //secrea la constante que almacena la uri  del .env
 const uri = process.env.MONGODB_URI;
@@ -40,8 +41,8 @@ async function cargarPalabrasClaveEnCache() {
         //se accede a la coleccion donde se almacenan las palabras 
         const collection = db.collection('palabras_clave');
         //se crea el array donde se estara almacenando las plabras para la posterior comparacion 
-        cachePalabras = await collection.find({}).toArray();
-        console.log(" Palabras clave cargadas en caché:", cachePalabras.length);
+        const palabrasObjetos = await collection.find({}).toArray();
+        cachePalabras = palabrasObjetos.map(doc => doc.palabra); // ahora solo strings        console.log(" Palabras clave cargadas en caché:", cachePalabras.length);
     } catch (err) {
         console.error(" Error al cargar palabras clave:", err);
     }

@@ -1,37 +1,26 @@
 /* LIBRERIAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
 const stringSimilarity = require('string-similarity');
-//bd 
-const { connectDB, obtenerPalabrasClave } = require('./db');
-//llamado a la base de datos 
-const base = {MongoDB.uri}
 
+const db = require('./db');
+
+//llamado a la base de datos 
 
 /* TOKEN Y BOT DE TELEGRAM */
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU'
 const bot = new TelegramBot(token, { polling: true });
 
-//conectar a mongo db 
-connectDB();
-
-/* PALABRAS CLAVE A DETECTAR CON STRING SIMILARITY */
-const arregloPalabras = [
-    'urgente',
-    'actualice',
-    'datos',
-    'bloqueada',
-    'verifique',
-    'identidad',
-    'datos',
-    'codigo',
-    'escriba el codigo',
-    'enlace',
-    'escriba sus credenciales',
-    'login',
-];
-
 // Umbral de detección que tan similar son los mensajes a las sospechas (0 poco) (1 mucho)
 const similaridad = 0.45;
+
+/* PALABRAS CLAVE A DETECTAR CON STRING SIMILARITY */
+let arregloPalabras = [];
+
+(async () => {
+    await db.connectDB();
+    arregloPalabras = db.obtenerPalabrasClave();
+    console.log("Bot inicializado con palabras clave:", arregloPalabras.length);
+})();
 
 
 bot.on('message', async (msg) => {
