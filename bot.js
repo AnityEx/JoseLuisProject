@@ -7,11 +7,25 @@ const db = require('./db'); // Asegúrate de que db.js esté correctamente confi
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';
 const bot = new TelegramBot(token, { polling: true });
 
+// Iniciar conexión y cargar palabras clave en caché al arrancar el bot
+(async () => {
+    try {
+        await db.connectDB();        // Se conecta a MongoDB Atlas
+        await cargarPalabras();      // Precarga las palabras en caché
+        console.log("✅ Bot listo y caché inicializada.");
+    } catch (err) {
+        console.error("❌ Error al iniciar el bot:", err);
+    }
+})();
+
 // Umbral de detección
 const similaridad = 0.45;
 
 // Estadísticas
 let mensajesDetectados = 0;
+
+// Caché local de palabras clave
+let cachePalabras = [];
 
 // Estado temporal por chat
 const estados = {};
@@ -19,8 +33,8 @@ const estados = {};
 // Función para cargar palabras clave de la base de datos
 async function cargarPalabras() {
     try {
-        const palabras = await db.obtenerPalabrasClave();
-        return palabras;
+        cachePalabras = await db.obtenerPalabrasClave();
+        return cachePalabras;
     } catch (err) {
         console.error("Error al cargar palabras clave:", err);
         return [];
@@ -29,10 +43,11 @@ async function cargarPalabras() {
 
 // Función para manejar el análisis de cada mensaje
 async function analizarMensaje(msg) {
+    console.log(">>> Analizando mensaje:", msg.text);
     const texto = (msg.text || '').toLowerCase();
     const chatId = msg.chat.id;
 
-    const arregloPalabras = await cargarPalabras();
+    const arregloPalabras = cachePalabras;
 
     if (arregloPalabras.length === 0) {
         bot.sendMessage(chatId, '❌ No se pueden detectar fraudes. No hay palabras clave cargadas.');
@@ -96,7 +111,10 @@ bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const action = query.data;
 
+    console.log("Callback recibido:", action);
+
     if (action === 'detect_fraud') {
+        console.log("Modo detección activado para:", chatId);
         estados[chatId] = "detectando"; // activar modo detección
         bot.sendMessage(chatId, '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.');
     } else if (action === 'add_keyword') {
@@ -126,8 +144,10 @@ bot.on('message', async (msg) => {
 
     // Ignorar si el mensaje es un comando (/algo)
     if (msg.text && msg.text.startsWith('/')) return;
+console.log("Mensaje recibido (no comando):", msg.text, "estado:", estados[chatId]);
 
     if (estados[chatId] === "detectando") {
+         console.log(">>> Analizando mensaje...");
         await analizarMensaje(msg);
         estados[chatId] = null; // limpiar estado
     }
@@ -141,11 +161,13 @@ bot.onText(/\/detectar (.+)/, async (msg, match) => {
 });
 
 bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
+    console.log("Se recibió comando /agregar:", match);
     const chatId = msg.chat.id;
     const palabra = match[1];
     const nivelRiesgo = match[2];
     try {
         await db.agregarPalabra(palabra, nivelRiesgo);
+        await cargarPalabras(); // Actualiza caché
         bot.sendMessage(chatId, `✅ La palabra "${palabra}" con nivel "${nivelRiesgo}" ha sido agregada.`);
     } catch {
         bot.sendMessage(chatId, '❌ Error al agregar la palabra.');
@@ -153,10 +175,12 @@ bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
 });
 
 bot.onText(/\/eliminar (\w+)/, async (msg, match) => {
+    console.log("Se recibió comando /eliminar:", match);
     const chatId = msg.chat.id;
     const palabra = match[1];
     try {
         await db.eliminarPalabra(palabra);
+        await cargarPalabras(); // Actualiza caché
         bot.sendMessage(chatId, `✅ La palabra "${palabra}" ha sido eliminada.`);
     } catch {
         bot.sendMessage(chatId, '❌ Error al eliminar la palabra.');
@@ -175,13 +199,18 @@ bot.onText(/\/ver_palabras/, async (msg) => {
 });
 
 bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
+    console.log("Se recibió comando /actualizar:", match);
     const chatId = msg.chat.id;
     const palabra = match[1];
     const nuevoNivel = match[2];
     try {
         await db.actualizarPalabra(palabra, nuevoNivel);
+        await cargarPalabras(); // Actualiza caché
         bot.sendMessage(chatId, `✅ La palabra "${palabra}" ahora tiene nivel "${nuevoNivel}".`);
     } catch {
         bot.sendMessage(chatId, '❌ Error al actualizar la palabra.');
     }
 });
+
+
+
