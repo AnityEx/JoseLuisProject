@@ -3,6 +3,17 @@ const TelegramBot = require('node-telegram-bot-api');
 const stringSimilarity = require('string-similarity');
 const db = require('./db'); // Asegúrate de que db.js esté correctamente configurado
 
+//contador de mensajes 
+const contadorMensajes = {};
+
+//id administradores 
+const ADMIN_IDS = [
+    8423246471 , //id German
+    7280579876 , // id Alan 
+    5951322472 //id Alisson 
+];
+
+
 // TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';
 const bot = new TelegramBot(token, { polling: true });
@@ -72,6 +83,30 @@ async function analizarMensaje(msg) {
     } else {
         bot.sendMessage(chatId, '✅ El mensaje **no** parece fraudulento.', { parse_mode: "Markdown" });
     }
+
+    // contador incremento 
+    if (!contadorMensajes[chatId]){ 
+        contadorMensajes[chatId] = 1;
+    } else {
+        contadorMensajes[chatId]++;
+    }
+    // segundo condicionaiento 
+    if (contadorMensajes[chatId] === 3 ) {
+    bot.sendMessage(chatId, '🤖 ¿Esta herramienta te fue útil?', {
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    { text: '👍 Sí, fue útil', callback_data: 'feedback_positivo' },
+                    { text: '👎 No me ayudó', callback_data: 'feedback_negativo' }
+                ]
+            ]
+        }
+    });
+} 
+
+    
+
+
 }
 
 // Menú inline
@@ -136,6 +171,17 @@ bot.on('callback_query', async (query) => {
     }
 
     bot.answerCallbackQuery(query.id);
+
+    //encuesta de satisfaccion 
+    if (action === 'feedback_positivo') {
+    bot.sendMessage(chatId, '😊 ¡Gracias por tu respuesta! Nos alegra saberlo.');
+   
+} else if (action === 'feedback_negativo') {
+    bot.sendMessage(chatId, '😟 Gracias por tu comentario. ¡Trabajaremos en mejorarlo!');
+   
+}
+
+
 });
 
 // --- INTERCEPTAR MENSAJES CUANDO ESTÁ EN MODO DETECCIÓN ---
@@ -143,11 +189,11 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
     // Ignorar si el mensaje es un comando (/algo)
-    if (msg.text && msg.text.startsWith('/')) return;
-console.log("Mensaje recibido (no comando):", msg.text, "estado:", estados[chatId]);
+    if (msg.text && msg.text.startsWith('/')) return; 
+    console.log("Mensaje recibido (no comando):", msg.text, "estado:", estados[chatId]);
 
     if (estados[chatId] === "detectando") {
-         console.log(">>> Analizando mensaje...");
+        console.log(">>> Analizando mensaje...");
         await analizarMensaje(msg);
         estados[chatId] = null; // limpiar estado
     }
