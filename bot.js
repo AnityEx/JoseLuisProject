@@ -1,32 +1,23 @@
+    'use strict';
+
 /* LIBRERÍAS NECESARIAS INSTALA COMO NPM */
 const TelegramBot = require('node-telegram-bot-api');
 const stringSimilarity = require('string-similarity');
 const db = require('./db'); // Asegúrate de que db.js esté correctamente configurado
+const axios = require('axios'); //no se usa directamente pero libreria safebrowsing lo pide
 
-//npm de axios una libreria para hacer peticiones http
-/* const axios = require('axios');
+// require('safe-browse-url-lookup')
+const safeApi = require('./SafeBrowsingLookup')({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
 
-//api google
-const GoogleAPI = 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4';
-const SafeBrowsing = 'https://safebrowsing.googleapis.com/v4/threatMatches:find?key=' + GoogleAPI;
-
-async function verificarURL(url) {
-    try {
-        const response = await axios.post(SafeBrowsing, {
-
-            "client": {
-                object(ClientInfo)
-            },
-            "threatInfo": {
-                object(ThreatInfo)
-            }
-        }
-        )
-    } catch (error) {
-
-    }
-} */
-//reemplazar google api con https://github.com/muety/safe-browse-url-lookup
+//REQUIERE NPM AXIOS INSTALADO
+safeApi.checkSingle('http://testsafebrowsing.appspot.com/apiv4/ANY_PLATFORM/MALWARE/URL/')
+    .then(isMalicious => {
+        console.log(isMalicious ? 'Hands off! This URL is evil!' : 'Everything\'s safe.');
+    })
+    .catch(err => {
+        console.log('Something went wrong.');
+        console.log(err);
+    });
 
 //contador de mensajes 
 const contadorMensajes = {};
