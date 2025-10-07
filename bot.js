@@ -1,38 +1,22 @@
-    'use strict';
-
+'use strict';
 /* LIBRERÍAS NECESARIAS INSTALA COMO NPM */
-const TelegramBot = require('node-telegram-bot-api');
-const stringSimilarity = require('string-similarity');
-const db = require('./db'); // Asegúrate de que db.js esté correctamente configurado
-const axios = require('axios'); //no se usa directamente pero libreria safebrowsing lo pide
-
-// require('safe-browse-url-lookup')
-const safeApi = require('./SafeBrowsingLookup')({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
-
-//REQUIERE NPM AXIOS INSTALADO
-safeApi.checkSingle('http://testsafebrowsing.appspot.com/apiv4/ANY_PLATFORM/MALWARE/URL/')
-    .then(isMalicious => {
-        console.log(isMalicious ? 'Hands off! This URL is evil!' : 'Everything\'s safe.');
-    })
-    .catch(err => {
-        console.log('Something went wrong.');
-        console.log(err);
-    });
-
-//contador de mensajes 
-const contadorMensajes = {};
-
-//id administradores 
-const ADMIN_IDS = [
-    8423246471, //id German
-    7280579876, // id Lana
-    5951322472 //id Alisson 
-];
-
+import TelegramBot from 'node-telegram-bot-api';
+import stringSimilarity from 'string-similarity';
+import db from './db.js'; // Asegúrate de que db.js esté correctamente configurado
+import axios from 'axios'; //libreria necesaria para safebrowsinglookup
+import SafeBrowsingLookup from './SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
 
 // TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';
 const bot = new TelegramBot(token, { polling: true });
+
+const contadorMensajes = {};
+
+const ADMIN_IDS = [
+    8423246471, //id German
+    7280579876, // id Alan
+    5951322472 //id Alisson 
+];
 
 // Iniciar conexión y cargar palabras clave en caché al arrancar el bot
 (async () => {
@@ -93,8 +77,38 @@ async function analizarMensaje(msg) {
         }
     }
 
-    if (coincidencias.length > 0) {
-        bot.sendMessage(chatId, `⚠️ **Este mensaje es probablemente fraudulento**.\nCoincidencias:\n${coincidencias.join('\n')}`, { parse_mode: "Markdown" });
+
+
+    function ExtractorDeLinks(texto) {
+        //magia negra para extraer links de un texto a base de comparar texto con "regex" funca para todo
+        const urlRegex = /(([a-z]+:\/\/)?(([a-z0-9\-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-\.~]+)*(\/([a-z0-9_\-\.]*)(\?[a-z0-9+_\-\.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi
+        const link = texto.match(urlRegex);
+        console.log(link);
+        return link || []; // Nunca devolver null, siempre array
+    }
+
+    const LinksSospechosos = ExtractorDeLinks(msg.text || '');
+
+    async function checklinks() {
+        try {
+            const urlMap = await safeApi.checkMulti(LinksSospechosos);
+            for (let url in urlMap) {
+                console.log(urlMap[url] ? `🔴 LINK MALCIOSO ${url} ` : `🟢 link seguro ${url}`);
+            }
+            return urlMap || [];
+
+        } catch (err) {
+            console.log('Something went wrong.');
+            console.log(err);
+            return [];
+        }
+    }
+    const urlMap = await checklinks();
+
+    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🔍 Revisa antes de entrar'} → ${url}` });
+
+    if (coincidencias.length > 0 || LinksSospechosos.length > 0) {
+        bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, { parse_mode: "HTML" });
         mensajesDetectados++;
     } else {
         bot.sendMessage(chatId, '✅ El mensaje **no** parece fraudulento.', { parse_mode: "Markdown" });
@@ -119,10 +133,6 @@ async function analizarMensaje(msg) {
             }
         });
     }
-
-
-
-
 }
 
 // Menú inline
