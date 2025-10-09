@@ -81,7 +81,7 @@ async function analizarMensaje(msg) {
 
     function ExtractorDeLinks(texto) {
         //magia negra para extraer links de un texto a base de comparar texto con "regex" funca para todo
-        const urlRegex = /(([a-z]+:\/\/)?(([a-z0-9\-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-\.~]+)*(\/([a-z0-9_\-\.]*)(\?[a-z0-9+_\-\.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi
+        const urlRegex = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63}(?::\d{1,5})?(?:\/[^\s"'<>]*)?)/gi;
         const link = texto.match(urlRegex);
         console.log(link);
         return link || []; // Nunca devolver null, siempre array
@@ -93,7 +93,7 @@ async function analizarMensaje(msg) {
         try {
             const urlMap = await safeApi.checkMulti(LinksSospechosos);
             for (let url in urlMap) {
-                console.log(urlMap[url] ? `🔴 LINK MALCIOSO ${url} ` : `🟢 link seguro ${url}`);
+                console.log(urlMap[url] ? `🔴 LINK MALCIOSO ${url} ` : `🟡 link seguro ${url}`);
             }
             return urlMap || [];
 
@@ -105,7 +105,7 @@ async function analizarMensaje(msg) {
     }
     const urlMap = await checklinks();
 
-    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡Parece Seguro'} → ${url}` });
+    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}` });
 
     if (coincidencias.length > 0 || LinksSospechosos.length > 0) {
         bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, { parse_mode: "HTML" });
