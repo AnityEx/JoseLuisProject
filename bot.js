@@ -105,7 +105,7 @@ async function analizarMensaje(msg) {
     }
     const urlMap = await checklinks();
 
-    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🔍 Revisa antes de entrar'} → ${url}` });
+    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡Parece Seguro'} → ${url}` });
 
     if (coincidencias.length > 0 || LinksSospechosos.length > 0) {
         bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, { parse_mode: "HTML" });
