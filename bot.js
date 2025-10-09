@@ -108,10 +108,28 @@ async function analizarMensaje(msg) {
     const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}` });
 
     if (coincidencias.length > 0 || LinksSospechosos.length > 0) {
-        bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, { parse_mode: "HTML" });
+        bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '⬅️ Menu', callback_data: 'start_menu' },
+                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
+                    ]
+                ]
+            }
+        });
         mensajesDetectados++;
     } else {
-        bot.sendMessage(chatId, '✅ El mensaje **no** parece fraudulento.', { parse_mode: "Markdown" });
+        bot.sendMessage(chatId, '✅ El mensaje no parece fraudulento.', {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '⬅️ Menu', callback_data: 'start_menu' },
+                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
+                    ]
+                ]
+            }
+        });
     }
 
     // contador incremento 
@@ -160,6 +178,7 @@ function generarMenu(chatId) {
         '👋 ¡Hola! Soy tu bot de **detección de fraude**.\n\nElige una opción:',
         { ...menuOptions, parse_mode: "Markdown" }
     );
+    return menuOptions;
 }
 
 // /start
@@ -196,19 +215,19 @@ bot.on('callback_query', async (query) => {
         bot.sendMessage(chatId, '📝 Comandos disponibles:\n/start\n/detectar [mensaje]\n/agregar [palabra] [nivel_riesgo]\n/eliminar [palabra]\n/ver_palabras\n/actualizar [palabra] [nivel_riesgo]');
     }
 
-    bot.answerCallbackQuery(query.id);
+        bot.answerCallbackQuery(query.id);
 
-    //encuesta de satisfaccion 
-    if (action === 'feedback_positivo') {
-        bot.sendMessage(chatId, '😊 ¡Gracias por tu respuesta! Nos alegra saberlo.');
+        //encuesta de satisfaccion 
+        if (action === 'feedback_positivo') {
+            bot.sendMessage(chatId, '😊 ¡Gracias por tu respuesta! Nos alegra saberlo.');
 
-    } else if (action === 'feedback_negativo') {
-        bot.sendMessage(chatId, '😟 Gracias por tu comentario. ¡Trabajaremos en mejorarlo!');
+        } else if (action === 'feedback_negativo') {
+            bot.sendMessage(chatId, '😟 Gracias por tu comentario. ¡Trabajaremos en mejorarlo!');
 
-    }
+        }
 
 
-});
+    });
 
 // --- INTERCEPTAR MENSAJES CUANDO ESTÁ EN MODO DETECCIÓN ---
 bot.on('message', async (msg) => {
