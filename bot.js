@@ -152,33 +152,32 @@ async function analizarMensaje(msg) {
         });
     }
 }
-
+const menuOptions = {
+    reply_markup: {
+        inline_keyboard: [
+            [
+                { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' },
+                { text: '➕ Agregar palabra clave', callback_data: 'add_keyword' }
+            ],
+            [
+                { text: '🗑️ Eliminar palabra clave', callback_data: 'remove_keyword' },
+                { text: '🔄 Ver palabras clave', callback_data: 'view_keywords' }
+            ],
+            [
+                { text: '⚙️ Actualizar palabra clave', callback_data: 'update_keyword' },
+                { text: '📜 Ayuda', callback_data: 'help' }
+            ]
+        ]
+    }
+};
 // Menú inline
 function generarMenu(chatId) {
-    const menuOptions = {
-        reply_markup: {
-            inline_keyboard: [
-                [
-                    { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' },
-                    { text: '➕ Agregar palabra clave', callback_data: 'add_keyword' }
-                ],
-                [
-                    { text: '🗑️ Eliminar palabra clave', callback_data: 'remove_keyword' },
-                    { text: '🔄 Ver palabras clave', callback_data: 'view_keywords' }
-                ],
-                [
-                    { text: '⚙️ Actualizar palabra clave', callback_data: 'update_keyword' },
-                    { text: '📜 Ayuda', callback_data: 'help' }
-                ]
-            ]
-        }
-    };
+
     bot.sendMessage(
         chatId,
         '👋 ¡Hola! Soy tu bot de **detección de fraude**.\n\nElige una opción:',
         { ...menuOptions, parse_mode: "Markdown" }
     );
-    return menuOptions;
 }
 
 // /start
@@ -214,20 +213,22 @@ bot.on('callback_query', async (query) => {
     } else if (action === 'help') {
         bot.sendMessage(chatId, '📝 Comandos disponibles:\n/start\n/detectar [mensaje]\n/agregar [palabra] [nivel_riesgo]\n/eliminar [palabra]\n/ver_palabras\n/actualizar [palabra] [nivel_riesgo]');
     }
+    else if (action === 'start_menu') {
+        bot.sendMessage(chatId, 'Menú principal.', menuOptions);
+    }
+    bot.answerCallbackQuery(query.id);
 
-        bot.answerCallbackQuery(query.id);
+    //encuesta de satisfaccion 
+    if (action === 'feedback_positivo') {
+        bot.sendMessage(chatId, '😊 ¡Gracias por tu respuesta! Nos alegra saberlo.');
 
-        //encuesta de satisfaccion 
-        if (action === 'feedback_positivo') {
-            bot.sendMessage(chatId, '😊 ¡Gracias por tu respuesta! Nos alegra saberlo.');
+    } else if (action === 'feedback_negativo') {
+        bot.sendMessage(chatId, '😟 Gracias por tu comentario. ¡Trabajaremos en mejorarlo!');
 
-        } else if (action === 'feedback_negativo') {
-            bot.sendMessage(chatId, '😟 Gracias por tu comentario. ¡Trabajaremos en mejorarlo!');
-
-        }
+    }
 
 
-    });
+});
 
 // --- INTERCEPTAR MENSAJES CUANDO ESTÁ EN MODO DETECCIÓN ---
 bot.on('message', async (msg) => {
