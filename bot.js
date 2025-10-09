@@ -14,7 +14,7 @@ const contadorMensajes = {};
 
 const ADMIN_IDS = [
     8423246471, //id German
-    7280579876, // id Alan
+    7280579876, // id Lana
     5951322472 //id Alisson 
 ];
 
@@ -65,7 +65,7 @@ async function analizarMensaje(msg) {
         return;
     }
 
-    const mensaje = texto.split(/\s+/);
+    const mensaje = texto.split(/\s+/);// separa el mensaje por espacios
     const coincidencias = [];
 
     for (const palabraMensaje of mensaje) {
@@ -87,7 +87,7 @@ async function analizarMensaje(msg) {
         return link || []; // Nunca devolver null, siempre array
     }
 
-    const LinksSospechosos = ExtractorDeLinks(msg.text || '');
+    const LinksSospechosos = ExtractorDeLinks(msg.text || '');//array de links
 
     async function checklinks() {
         try {
