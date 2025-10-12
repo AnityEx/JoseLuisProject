@@ -1,48 +1,40 @@
 'use strict';
-/* LIBRERÍAS NECESARIAS INSTALA COMO NPM */
 import TelegramBot from 'node-telegram-bot-api';
 import stringSimilarity from 'string-similarity';
-import db from './db.js'; // Asegúrate de que db.js esté correctamente configurado
-import axios from 'axios'; //libreria necesaria para safebrowsinglookup
+import db from './db.js';
+import axios from 'axios'; //libreria necesaria para SafeBrowsingLookup.js
 import SafeBrowsingLookup from './SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
 
-// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
-const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';
+const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const bot = new TelegramBot(token, { polling: true });
 
-const contadorMensajes = {};
+const similaridad = 0.45;// Umbral de detección
+
+let mensajesDetectados = 0;// Estadísticas
+
+let cachePalabras = [];// Caché local de palabras clave
+
+const estados = {};// Estado temporal por chat
 
 const ADMIN_IDS = [
     8423246471, //id German
-    7280579876, // id Lana
+    7280579876, //id Lana
     5951322472 //id Alisson 
 ];
 
-// Iniciar conexión y cargar palabras clave en caché al arrancar el bot
-(async () => {
+//-----------------------------------------------------------------------------------------------------------------------------
+
+(async () => {// Iniciar conexión y cargar palabras clave en caché al arrancar el bot
     try {
-        await db.connectDB();        // Se conecta a MongoDB Atlas
-        await cargarPalabras();      // Precarga las palabras en caché
+        await db.connectDB();// Se conecta a MongoDB Atlas
+        await cargarPalabras();// Precarga las palabras en caché
         console.log("✅ Bot listo y caché inicializada.");
     } catch (err) {
         console.error("❌ Error al iniciar el bot:", err);
     }
 })();
 
-// Umbral de detección
-const similaridad = 0.45;
-
-// Estadísticas
-let mensajesDetectados = 0;
-
-// Caché local de palabras clave
-let cachePalabras = [];
-
-// Estado temporal por chat
-const estados = {};
-
-// Función para cargar palabras clave de la base de datos
-async function cargarPalabras() {
+async function cargarPalabras() {// Función para cargar palabras clave de la base de datos
     try {
         cachePalabras = await db.obtenerPalabrasClave();
         return cachePalabras;
@@ -52,39 +44,27 @@ async function cargarPalabras() {
     }
 }
 
-// Función para manejar el análisis de cada mensaje
-async function analizarMensaje(msg) {
-    console.log(">>> Analizando mensaje:", msg.text);
-    const texto = (msg.text || '').toLowerCase();
-    const chatId = msg.chat.id;
+//----------------------------------------------------------------------
+const texto = (msg.text || '').toLowerCase();
+const chatId = msg.chat.id;
+const arregloPalabras = cachePalabras;
+const mensaje = texto.split(/\s+/);// separa el mensaje por espacios
+const coincidencias = [];
+//----------------------------------------------------------------------
 
-    const arregloPalabras = cachePalabras;
-
+async function analizarMensaje(msg) {// Función para manejar el análisis de cada mensaje
+    console.log("Mensaje recibido:", msg.text);
     if (arregloPalabras.length === 0) {
         bot.sendMessage(chatId, '❌ No se pueden detectar fraudes. No hay palabras clave cargadas.');
         return;
     }
-
-    const mensaje = texto.split(/\s+/);// separa el mensaje por espacios
-    const coincidencias = [];
-
-    for (const palabraMensaje of mensaje) {
+    for (const palabrasMensaje of mensaje) {
         for (const palabraClave of arregloPalabras) {
-            const sim = stringSimilarity.compareTwoStrings(palabraMensaje, palabraClave.palabra);
+            const sim = stringSimilarity.compareTwoStrings(palabrasMensaje, palabraClave.palabra);
             if (sim >= similaridad) {
-                coincidencias.push(`${palabraMensaje} ≈ ${palabraClave.palabra} (${(sim * 100).toFixed(1)}%)`);
+                coincidencias.push(`${palabrasMensaje} ≈ ${palabraClave.palabra} (${(sim * 100).toFixed(1)}%)`);
             }
         }
-    }
-
-
-
-    function ExtractorDeLinks(texto) {
-        //magia negra para extraer links de un texto a base de comparar texto con "regex" funca para todo
-        const urlRegex = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63}(?::\d{1,5})?(?:\/[^\s"'<>]*)?)/gi;
-        const link = texto.match(urlRegex);
-        console.log(link);
-        return link || []; // Nunca devolver null, siempre array
     }
 
     const LinksSospechosos = ExtractorDeLinks(msg.text || '');//array de links
@@ -152,6 +132,7 @@ async function analizarMensaje(msg) {
         });
     }
 }
+
 const menuOptions = {
     reply_markup: {
         inline_keyboard: [
@@ -170,9 +151,8 @@ const menuOptions = {
         ]
     }
 };
-// Menú inline
-function generarMenu(chatId) {
 
+function generarMenu(chatId) {// Menú inline
     bot.sendMessage(
         chatId,
         '👋 ¡Hola! Soy tu bot de **detección de fraude**.\n\nElige una opción:',
@@ -180,8 +160,7 @@ function generarMenu(chatId) {
     );
 }
 
-// /start
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, (msg) => {// /start
     const chatId = msg.chat.id;
     generarMenu(chatId);
 });
@@ -221,13 +200,9 @@ bot.on('callback_query', async (query) => {
     //encuesta de satisfaccion 
     if (action === 'feedback_positivo') {
         bot.sendMessage(chatId, '😊 ¡Gracias por tu respuesta! Nos alegra saberlo.');
-
     } else if (action === 'feedback_negativo') {
         bot.sendMessage(chatId, '😟 Gracias por tu comentario. ¡Trabajaremos en mejorarlo!');
-
     }
-
-
 });
 
 // --- INTERCEPTAR MENSAJES CUANDO ESTÁ EN MODO DETECCIÓN ---
@@ -244,13 +219,16 @@ bot.on('message', async (msg) => {
         estados[chatId] = null; // limpiar estado
     }
 });
-// --- COMANDOS ---
+
+// ----------------------------- COMANDOS ------------------------------
 
 bot.onText(/\/detectar (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const texto = match[1];
     await analizarMensaje({ text: texto, chat: { id: chatId } });
 });
+
+
 
 bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
     console.log("Se recibió comando /agregar:", match);
@@ -266,6 +244,8 @@ bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
     }
 });
 
+
+
 bot.onText(/\/eliminar (\w+)/, async (msg, match) => {
     console.log("Se recibió comando /eliminar:", match);
     const chatId = msg.chat.id;
@@ -279,6 +259,8 @@ bot.onText(/\/eliminar (\w+)/, async (msg, match) => {
     }
 });
 
+
+
 bot.onText(/\/ver_palabras/, async (msg) => {
     const chatId = msg.chat.id;
     const palabras = await db.obtenerPalabrasClave();
@@ -289,6 +271,8 @@ bot.onText(/\/ver_palabras/, async (msg) => {
         bot.sendMessage(chatId, `🔑 **Palabras clave**:\n${palabrasList}`, { parse_mode: "Markdown" });
     }
 });
+
+
 
 bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
     console.log("Se recibió comando /actualizar:", match);
@@ -306,3 +290,11 @@ bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
 
 
 
+//------------------------------------funciones e utilidades independientes ------------------------------------------
+function ExtractorDeLinks(texto) {
+    //magia negra para extraer links de un texto a base de comparar texto con "regex" funca para todo
+    const urlRegex = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63}(?::\d{1,5})?(?:\/[^\s"'<>]*)?)/gi;
+    const link = texto.match(urlRegex);
+    console.log(link);
+    return link || []; // Nunca devolver null, siempre array
+}
