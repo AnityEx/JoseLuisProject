@@ -16,11 +16,20 @@ let cachePalabras = [];// Caché local de palabras clave
 
 const estados = {};// Estado temporal por chat
 
+const contadorMensajes = [];
+
 const ADMIN_IDS = [
     8423246471, //id German
     7280579876, //id Lana
     5951322472 //id Alisson 
 ];
+
+//funcion de admins 
+function esAdmin(userId) {
+    return ADMIN_IDS.includes(userId);
+}
+
+
 
 //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -45,14 +54,17 @@ async function cargarPalabras() {// Función para cargar palabras clave de la ba
 }
 
 //----------------------------------------------------------------------
-const texto = (msg.text || '').toLowerCase();
-const chatId = msg.chat.id;
-const arregloPalabras = cachePalabras;
-const mensaje = texto.split(/\s+/);// separa el mensaje por espacios
-const coincidencias = [];
+
+
 //----------------------------------------------------------------------
 
 async function analizarMensaje(msg) {// Función para manejar el análisis de cada mensaje
+    const arregloPalabras = cachePalabras;
+
+    const coincidencias = [];
+    const texto = (msg.text || '').toLowerCase();
+    const chatId = msg.chat.id;
+    const mensaje = texto.split(/\s+/);// separa el mensaje por espacios
     console.log("Mensaje recibido:", msg.text);
     if (arregloPalabras.length === 0) {
         bot.sendMessage(chatId, '❌ No se pueden detectar fraudes. No hay palabras clave cargadas.');
@@ -133,30 +145,45 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     }
 }
 
-const menuOptions = {
-    reply_markup: {
-        inline_keyboard: [
-            [
-                { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' },
-                { text: '➕ Agregar palabra clave', callback_data: 'add_keyword' }
-            ],
+const menuOptions = (chatId) => {
+    const isAdmin = esAdmin(chatId);
+    const menu = [
+        [
+            { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' }
+
+        ],
+        [
+
+            { text: '📜 Ayuda', callback_data: 'help' }
+        ],
+    ];
+
+    if (isAdmin) {
+        menu[0].push({ text: '➕ Agregar palabra clave', callback_data: 'add_keyword' });
+        menu.push(
             [
                 { text: '🗑️ Eliminar palabra clave', callback_data: 'remove_keyword' },
-                { text: '🔄 Ver palabras clave', callback_data: 'view_keywords' }
-            ],
-            [
                 { text: '⚙️ Actualizar palabra clave', callback_data: 'update_keyword' },
-                { text: '📜 Ayuda', callback_data: 'help' }
+                { text: '🔄 Ver palabras clave', callback_data: 'view_keywords' },
+
             ]
-        ]
+        );
     }
-};
+
+    return {
+        reply_markup: {
+            inline_keyboard: menu
+        }
+    };
+
+
+}
 
 function generarMenu(chatId) {// Menú inline
     bot.sendMessage(
         chatId,
         '👋 ¡Hola! Soy tu bot de **detección de fraude**.\n\nElige una opción:',
-        { ...menuOptions, parse_mode: "Markdown" }
+        { ...menuOptions(chatId), parse_mode: "Markdown" }
     );
 }
 
@@ -176,8 +203,11 @@ bot.on('callback_query', async (query) => {
         estados[chatId] = "detectando"; // activar modo detección
         bot.sendMessage(chatId, '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.');
     } else if (action === 'add_keyword') {
+        if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '➕ Envía en este formato:\n/agregar [palabra] [nivel_riesgo]');
-    } else if (action === 'remove_keyword') {
+    }
+    else if (action === 'remove_keyword') {
+        if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '🗑️ Envía en este formato:\n/eliminar [palabra]');
     } else if (action === 'view_keywords') {
         const palabras = await db.obtenerPalabrasClave();
@@ -188,12 +218,13 @@ bot.on('callback_query', async (query) => {
             bot.sendMessage(chatId, `🔑 **Palabras clave**:\n${palabrasList}`, { parse_mode: "Markdown" });
         }
     } else if (action === 'update_keyword') {
+        if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '🔄 Envía en este formato:\n/actualizar [palabra] [nuevo_nivel_riesgo]');
     } else if (action === 'help') {
-        bot.sendMessage(chatId, '📝 Comandos disponibles:\n/start\n/detectar [mensaje]\n/agregar [palabra] [nivel_riesgo]\n/eliminar [palabra]\n/ver_palabras\n/actualizar [palabra] [nivel_riesgo]');
+        bot.sendMessage(chatId, '📝 Comandos disponibles:\n/start\n/detectar [mensaje]');
     }
     else if (action === 'start_menu') {
-        bot.sendMessage(chatId, 'Menú principal.', menuOptions);
+        bot.sendMessage(chatId, 'Menú principal.', menuOptions(chatId));
     }
     bot.answerCallbackQuery(query.id);
 
@@ -233,6 +264,12 @@ bot.onText(/\/detectar (.+)/, async (msg, match) => {
 bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
     console.log("Se recibió comando /agregar:", match);
     const chatId = msg.chat.id;
+    const userId = msg.from.id;
+
+    //verificar si el usuario es admin 
+    if (!esAdmin(userId)) {
+        return bot.sendMessage(chatId, ' No tienes permiso para usar este comando ');
+    }
     const palabra = match[1];
     const nivelRiesgo = match[2];
     try {
@@ -246,9 +283,16 @@ bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
 
 
 
+
 bot.onText(/\/eliminar (\w+)/, async (msg, match) => {
     console.log("Se recibió comando /eliminar:", match);
     const chatId = msg.chat.id;
+    const userId = msg.from.id;
+
+    if (!esAdmin(userId)) {
+        return bot.sendMessage(chatId, '❌  No tienes permiso para usar este comando.');
+    }
+
     const palabra = match[1];
     try {
         await db.eliminarPalabra(palabra);
@@ -261,8 +305,14 @@ bot.onText(/\/eliminar (\w+)/, async (msg, match) => {
 
 
 
+
 bot.onText(/\/ver_palabras/, async (msg) => {
     const chatId = msg.chat.id;
+    const userId = msg.from.id;
+
+    if (!esAdmin(userId)) {
+        return bot.sendMessage(chatId, '❌  No tienes permiso para usar este comando');
+    }
     const palabras = await db.obtenerPalabrasClave();
     if (palabras.length === 0) {
         bot.sendMessage(chatId, '🚫 No hay palabras clave en la base de datos.');
@@ -274,9 +324,15 @@ bot.onText(/\/ver_palabras/, async (msg) => {
 
 
 
+
 bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
     console.log("Se recibió comando /actualizar:", match);
     const chatId = msg.chat.id;
+    const userId = msg.from.id;
+
+    if (!esAdmin(userId)) {
+        return bot.sendMessage(chatId, '❌ No tienes permiso para usar este comando.');
+    }
     const palabra = match[1];
     const nuevoNivel = match[2];
     try {
