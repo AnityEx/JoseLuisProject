@@ -7,8 +7,10 @@ img = 'https://www.olyfed.com/wp-content/uploads/2023/10/TextScam-768x521.jpg'
 #https://www.eldebate.com/files/article_social/uploads/2022/04/15/6259ddb4a57bd.png
 #https://www.olyfed.com/wp-content/uploads/2023/10/TextScam-768x521.jpg
 
+headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
 # Download the image from URL
-temp_img = requests.get(img)
+temp_img = requests.get(img, headers=headers)
 temp_img.raise_for_status()
 
 # Prepare file dict for POST request
