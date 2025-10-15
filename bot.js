@@ -52,9 +52,9 @@ async function cargarPalabras() {// Función para cargar palabras clave de la ba
         return [];
     }
 }
-
+//importe de funcion para evaluar el riesgo 
 //----------------------------------------------------------------------
-
+import { evaluarNivelRiesgo } from  './detectar_Nivel.js';
 
 //----------------------------------------------------------------------
 
@@ -96,10 +96,15 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
         }
     }
     const urlMap = await checklinks();
+    const linksMaliciosos = Object.entries(urlMap)
+    .filter(([_, esMalicioso]) => esMalicioso)
+    .map(([url]) => url);
+const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMaliciosos);
+
 
     const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}` });
 
-    if (coincidencias.length > 0 || LinksSospechosos.length > 0) {
+    {
         bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, {
             reply_markup: {
                 inline_keyboard: [
@@ -111,17 +116,37 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
             }
         });
         mensajesDetectados++;
-    } else {
-        bot.sendMessage(chatId, '✅ El mensaje no parece fraudulento.', {
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        { text: '⬅️ Menu', callback_data: 'start_menu' },
-                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
-                    ]
-                ]
-            }
-        });
+    } 
+    {
+        const LinksOrdenados = Object.entries(urlMap)
+    .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
+
+const resumen = `
+🔍 *Resultado del análisis:*
+- Palabras clave detectadas: ${coincidencias.length}
+- Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
+- Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
+- Riesgo BAJO: ${resultadoRiesgo.conteo.bajo}
+- Enlaces maliciosos: ${resultadoRiesgo.conteo.maliciosos > 0 ? '🔴 Sí' : '🟢 No'}
+
+${resultadoRiesgo.mensaje}
+
+${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
+${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.join('\n')}` : ''}
+`;
+
+bot.sendMessage(chatId, resumen, {
+    parse_mode: "Markdown",
+    reply_markup: {
+        inline_keyboard: [
+            [
+                { text: '⬅️ Menu', callback_data: 'start_menu' },
+                { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
+            ]
+        ]
+    }
+});
+
     }
 
     // contador incremento 
