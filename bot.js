@@ -29,8 +29,6 @@ function esAdmin(userId) {
     return ADMIN_IDS.includes(userId);
 }
 
-
-
 //-----------------------------------------------------------------------------------------------------------------------------
 
 (async () => {// Iniciar conexión y cargar palabras clave en caché al arrancar el bot
@@ -52,10 +50,9 @@ async function cargarPalabras() {// Función para cargar palabras clave de la ba
         return [];
     }
 }
-//importe de funcion para evaluar el riesgo 
 //----------------------------------------------------------------------
-import { evaluarNivelRiesgo } from  './detectar_Nivel.js';
-
+//importe de funcion para evaluar el riesgo 
+import { evaluarNivelRiesgo } from './detectar_Nivel.js';
 //----------------------------------------------------------------------
 
 async function analizarMensaje(msg) {// Función para manejar el análisis de cada mensaje
@@ -97,9 +94,9 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     }
     const urlMap = await checklinks();
     const linksMaliciosos = Object.entries(urlMap)
-    .filter(([_, esMalicioso]) => esMalicioso)
-    .map(([url]) => url);
-const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMaliciosos);
+        .filter(([_, esMalicioso]) => esMalicioso)
+        .map(([url]) => url);
+    const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMaliciosos);
 
 
     const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}` });
@@ -116,12 +113,12 @@ const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMa
             }
         });
         mensajesDetectados++;
-    } 
+    }
     {
         const LinksOrdenados = Object.entries(urlMap)
-    .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
+            .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
 
-const resumen = `
+        const resumen = `
 🔍 *Resultado del análisis:*
 - Palabras clave detectadas: ${coincidencias.length}
 - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
@@ -135,17 +132,17 @@ ${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidenc
 ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.join('\n')}` : ''}
 `;
 
-bot.sendMessage(chatId, resumen, {
-    parse_mode: "Markdown",
-    reply_markup: {
-        inline_keyboard: [
-            [
-                { text: '⬅️ Menu', callback_data: 'start_menu' },
-                { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
-            ]
-        ]
-    }
-});
+        bot.sendMessage(chatId, resumen, {
+            parse_mode: "Markdown",
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '⬅️ Menu', callback_data: 'start_menu' },
+                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
+                    ]
+                ]
+            }
+        });
 
     }
 
@@ -211,6 +208,37 @@ function generarMenu(chatId) {// Menú inline
         { ...menuOptions(chatId), parse_mode: "Markdown" }
     );
 }
+//---------------------------------------------------------------------
+import { LectorImagen } from './OCR.js';  // IMPORTA LA FUNCION OCR
+//---------------------------------------------------------------------
+bot.on('photo', async (msg) => {
+    const chatId = msg.chat.id;
+    const photo = msg.photo;
+    const fileId = photo[photo.length - 1].file_id;  // Obtener el ID de la foto con mejor calidad
+
+    try {
+        const LinkImagen = await bot.getFileLink(fileId);  // Obtener el enlace de la imagen
+        console.log("IMAGEN RECIBIDA:", LinkImagen);
+        bot.sendMessage(chatId, 'Procesando Imagen');// Obtener el texto de la imagen usando la función LectorImagen
+
+        const textoOCR = await LectorImagen(LinkImagen);
+
+        if (textoOCR === undefined) {
+            console.log(textoOCR);
+            throw new Error('OCR result is undefined');
+        }
+
+
+        bot.sendMessage(chatId, 'Texto procesado:');
+        bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta
+
+    } catch (error) {
+        console.error("Error al procesar la foto:", error);
+        bot.sendMessage(chatId, 'Hubo un problema al procesar la imagen.');
+    }
+});
+//---------------------------------------------------------------------
+
 
 bot.onText(/\/start/, (msg) => {// /start
     const chatId = msg.chat.id;

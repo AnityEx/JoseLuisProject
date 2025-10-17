@@ -14,6 +14,10 @@ luego pon cada linea una por una en el terminal
 .\venv\Scripts\activate
 pip install -r .\requirements.txt`
 
-se inicia con nodemon para hacer cambios y funcione inmediatamente, pero no es necesario
 
-una vez descargues todo se corre con `nodemon bot.js`
+primero corre el server api
+`rapidocr_api`
+luego
+`nodemon bot.js`
+
+

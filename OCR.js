@@ -1,62 +1,56 @@
-'use strict';
+import axios from 'axios';
+import FormData from 'form-data';
 
-const axios = require('axios');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
-const mime = require('mime-types');
-
-async function LectorImagen(imagen = './image.png') {
+export async function LectorImagen(imagen = '', language = 'spa') {  // Default to English
     try {
         let fileStream;
         let mimeType;
         let filename;
 
-        // Check if the input is a URL or a local path
         if (imagen.startsWith('http')) {
-            // 🛰️ Download image from URL
-            console.log('Downloading image from URL...');
+            console.log('DESCARGANDO IMAGEN');
             const response = await axios.get(imagen, {
                 responseType: 'arraybuffer',
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
             });
 
-            // Save to temp file
             filename = 'temp_image';
-            const tempPath = path.join(__dirname, `${filename}.jpg`);
-            fs.writeFileSync(tempPath, response.data);
-            fileStream = fs.createReadStream(tempPath);
+            fileStream = Buffer.from(response.data);
             mimeType = response.headers['content-type'] || 'application/octet-stream';
         } else {
-            // 📂 Use local image
-            const imgPath = path.resolve(imagen);
-            fileStream = fs.createReadStream(imgPath);
-            mimeType = mime.lookup(imgPath) || 'application/octet-stream';
-            filename = path.basename(imgPath);
+            throw new Error('Invalid image URL');
         }
 
-        // 📤 Prepare the form for OCR
+        // Create FormData for OCR request
         const form = new FormData();
-        form.append('image_file', fileStream, {
-            filename,
-            contentType: mimeType
-        });
+        form.append('image_file', fileStream, { filename, contentType: mimeType });
+        form.append('language', language);  // Pass only one language
 
-        console.log('Sending image to OCR server...');
+        console.log('ENVIANDO IMAGEN AL SERVIDOR OCR');
         const ocrResponse = await axios.post('http://localhost:9003/ocr', form, {
             headers: form.getHeaders(),
             timeout: 10000,
         });
 
-        console.log('✅ OCR RESULT:', ocrResponse.data);
-    } catch (err) {
-        if (err.response) {
-            console.error('❌ OCR request failed:', err.response.status, err.response.data);
-        } else {
-            console.error('❌ Error:', err.message);
+        console.log('✅ IMAGEN LEIDA:', ocrResponse.data);
+
+        let extractedText = [];
+        for (const key in ocrResponse.data) {
+            if (ocrResponse.data[key].rec_txt) {
+                extractedText.push(ocrResponse.data[key].rec_txt);
+            }
         }
+
+        console.log('Texto extraído:', extractedText.join(' '));
+        return extractedText.join(' ');
+    } catch (err) {
+        console.error('❌ Error:', err.message);
+
+        if (err.response) {
+            console.error('Código de estado:', err.response.status);
+            console.error('Datos de respuesta:', err.response.data);
+        }
+
+        throw err;
     }
 }
-
-LectorImagen('https://www.olyfed.com/wp-content/uploads/2023/10/TextScam-768x521.jpg');
-// Or: LectorImagen('./image.png');
