@@ -99,21 +99,7 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMaliciosos);
 
 
-    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => { return `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}` });
-
-    {
-        bot.sendMessage(chatId, `⚠️ Mensaje probablemente fraudulento. ⚠️\nSospechas:\n${coincidencias.join('\n')}\n${LinksOrdenados.join('\n')}`, {
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        { text: '⬅️ Menu', callback_data: 'start_menu' },
-                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
-                    ]
-                ]
-            }
-        });
-        mensajesDetectados++;
-    }
+    
     {
         const LinksOrdenados = Object.entries(urlMap)
             .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
