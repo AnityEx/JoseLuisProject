@@ -1,7 +1,7 @@
 import axios from 'axios';
 import FormData from 'form-data';
 
-export async function LectorImagen(imagen = '') {
+export async function LectorImagen(imagen = '',language = 'en') {
     try {
         let fileStream;
         let mimeType;
