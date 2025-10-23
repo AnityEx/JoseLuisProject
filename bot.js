@@ -3,7 +3,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import stringSimilarity from 'string-similarity';
 import db from './db.js';
 import axios from 'axios'; //libreria necesaria para SafeBrowsingLookup.js
-import SafeBrowsingLookup from './SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
+import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
 
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const bot = new TelegramBot(token, { polling: true });
