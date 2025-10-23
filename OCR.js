@@ -29,7 +29,7 @@ export async function LectorImagen(imagen = '',language = 'en') {
         console.log('ENVIANDO IMAGEN AL SERVIDOR OCR');
         const ocrResponse = await axios.post('http://localhost:9003/ocr', form, {
             headers: form.getHeaders(),
-            timeout: 10000,
+            timeout: 20000,
         });
 
         console.log('✅ IMAGEN LEIDA:', ocrResponse.data);
@@ -42,7 +42,14 @@ export async function LectorImagen(imagen = '',language = 'en') {
         }
 
         console.log('Texto extraído:', extractedText.join(' '));
-        return extractedText.join(' ');
+        if (Array.isArray(extractedText) && extractedText.length > 0) {
+            return  extractedText.join(' ');
+            
+        }
+        else {
+            return 'No se encontró texto.';
+        }
+
     } catch (err) {
         console.error('❌ Error:', err.message);
 
