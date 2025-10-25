@@ -98,7 +98,7 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMaliciosos);
 
 
-    
+
     {
         const LinksOrdenados = Object.entries(urlMap)
             .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
@@ -278,17 +278,37 @@ bot.on('callback_query', async (query) => {
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
-    // Ignorar si el mensaje es un comando (/algo)
+    // Ignorar si es un comando 
     if (msg.text && msg.text.startsWith('/')) return;
-    console.log("Mensaje recibido (no comando):", msg.text, "estado:", estados[chatId]);
 
-    if (estados[chatId] === "detectando") {
-        console.log(">>> Analizando mensaje...");
-        await analizarMensaje(msg);
-        estados[chatId] = null; // limpiar estado
+    //ignorara mensaje de botones 
+    if (msg.data) return;
+
+    // Si no hay texto (por ejemplo stickers, audios), ignorar
+    if (!msg.text) return;
+
+    const texto = msg.text.trim();
+    const palabras = texto.split(/\s+/);
+
+    console.log(`Mensaje recibido: "${texto}" con ${palabras.length} palabras`);
+
+    // 📌 SI ES MENSAJE CORTO → SALUDO
+    if (palabras.length <= 2) {
+        bot.sendMessage(chatId,
+            `👋 ¡Hola! Bienvenido al bot de *análisis de mensajes*.\n\nEscribe un mensaje completo y lo analizaré por ti.`,
+            { parse_mode: "Markdown" }
+        );
+        return;
     }
-});
 
+    // 📌 SI ES MENSAJE LARGO → ANALIZAR AUTOMÁTICAMENTE
+    bot.sendMessage(chatId,
+        `🤖 Gracias por tu mensaje.\n🔍 *Estoy analizando el contenido...*`,
+        { parse_mode: "Markdown" }
+    );
+
+    await analizarMensaje(msg);
+});
 // ----------------------------- COMANDOS ------------------------------
 
 bot.onText(/\/detectar (.+)/, async (msg, match) => {
