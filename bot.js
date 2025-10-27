@@ -7,7 +7,7 @@ import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeAp
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const bot = new TelegramBot(token, { polling: true });
 
-const similaridad = 0.45;// Umbral de detección
+const similaridad = 0.60;// Umbral de detección
 
 let mensajesDetectados = 0;// Estadísticas
 
@@ -214,8 +214,11 @@ bot.on('photo', async (msg) => {
         }
 
 
-        bot.sendMessage(chatId, 'Texto procesado:');
-        bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta
+
+        await bot.sendMessage(chatId, 'Texto procesado:');
+        await bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta
+        await analizarMensaje(textoOCR);
+
 
     } catch (error) {
         console.error("Error al procesar la foto:", error);
