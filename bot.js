@@ -204,7 +204,7 @@ bot.on('photo', async (msg) => {
     try {
         const LinkImagen = await bot.getFileLink(fileId);  // Obtener el enlace de la imagen
         console.log("IMAGEN RECIBIDA:", LinkImagen);
-        bot.sendMessage(chatId, 'Procesando Imagen');// Obtener el texto de la imagen usando la función LectorImagen
+        bot.sendMessage(chatId, 'Procesando Imagen...');// Obtener el texto de la imagen usando la función LectorImagen
 
         const textoOCR = await LectorImagen(LinkImagen);
 
@@ -215,8 +215,8 @@ bot.on('photo', async (msg) => {
 
 
 
-        bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta
-        await analizarMensaje(textoOCR);
+        /*         bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta*/
+        await analizarMensaje({ ...msg, text: textoOCR });
 
 
     } catch (error) {
@@ -281,8 +281,7 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
     // Ignorar si es un comando 
-    if (msg.text && msg.text.startsWith('/')) return;
-
+/*     if (msg.text && msg.text.startsWith('/')) return;*/
     //ignorara mensaje de botones 
     if (msg.data) return;
 
@@ -297,7 +296,7 @@ bot.on('message', async (msg) => {
     // 📌 SI ES MENSAJE CORTO → SALUDO
     if (palabras.length <= 2) {
         bot.sendMessage(chatId,
-            `👋 ¡Hola! Bienvenido al bot de *deteccion de estafas *.\n\nEscribe un mensaje completo y lo analizaré por ti.`,
+            `👋 ¡Hola! Bienvenido al bot de *deteccion de estafas *.\n\nEnvíame el mensaje que sospeches de fraude y lo analizaré.`,
             { parse_mode: "Markdown" }
         );
         return;
