@@ -274,7 +274,7 @@ bot.on('callback_query', async (query) => {
     }
 });
 
-// --- INTERCEPTAR MENSAJES CUANDO ESTÁ EN MODO DETECCIÓN ---
+// --- funcionalidad inmediata ---
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
@@ -295,7 +295,7 @@ bot.on('message', async (msg) => {
     // 📌 SI ES MENSAJE CORTO → SALUDO
     if (palabras.length <= 2) {
         bot.sendMessage(chatId,
-            `👋 ¡Hola! Bienvenido al bot de *análisis de mensajes*.\n\nEscribe un mensaje completo y lo analizaré por ti.`,
+            `👋 ¡Hola! Bienvenido al bot de *deteccion de estafas *.\n\nEscribe un mensaje completo y lo analizaré por ti.`,
             { parse_mode: "Markdown" }
         );
         return;

@@ -18,7 +18,7 @@ pip install -r .\requirements.txt
 
 
 primero corre el server api
-python .\API\custom_rapidocr_api.py --workers 2   
+python .\API\custom_rapidocr_api.py --workers 2
 
 luego
 
