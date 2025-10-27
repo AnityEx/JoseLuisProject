@@ -215,8 +215,7 @@ bot.on('photo', async (msg) => {
 
 
 
-        await bot.sendMessage(chatId, 'Texto procesado:');
-        await bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta
+        bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta
         await analizarMensaje(textoOCR);
 
 
