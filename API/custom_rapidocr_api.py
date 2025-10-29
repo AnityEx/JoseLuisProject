@@ -86,7 +86,7 @@ def ocr(
         raise ValueError(
             "When sending a post request, data or files must have a value."
         )
-    ocr_res = processor(img, use_det=use_det, use_cls=use_cls, use_rec=use_rec)
+    ocr_res = processor(img, use_det=use_det, use_cls=False, use_rec=use_rec)
 
     return ocr_res
 

@@ -7,7 +7,7 @@ import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeAp
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const bot = new TelegramBot(token, { polling: true });
 
-const similaridad = 0.60;// Umbral de detección
+const similaridad = 0.65;// Umbral de detección
 
 let mensajesDetectados = 0;// Estadísticas
 
@@ -49,6 +49,7 @@ async function cargarPalabras() {// Función para cargar palabras clave de la ba
         return [];
     }
 }
+
 //----------------------------------------------------------------------
 //importe de funcion para evaluar el riesgo 
 import { evaluarNivelRiesgo } from './detectar_Nivel.js';
@@ -56,7 +57,6 @@ import { evaluarNivelRiesgo } from './detectar_Nivel.js';
 
 async function analizarMensaje(msg) {// Función para manejar el análisis de cada mensaje
     const arregloPalabras = cachePalabras;
-
     const coincidencias = [];
     const texto = (msg.text || '').toLowerCase();
     const chatId = msg.chat.id;
@@ -172,7 +172,6 @@ const menuOptions = (chatId) => {
                 { text: '🗑️ Eliminar palabra clave', callback_data: 'remove_keyword' },
                 { text: '⚙️ Actualizar palabra clave', callback_data: 'update_keyword' },
                 { text: '🔄 Ver palabras clave', callback_data: 'view_keywords' },
-
             ]
         );
     }
@@ -193,6 +192,7 @@ function generarMenu(chatId) {// Menú inline
         { ...menuOptions(chatId), parse_mode: "Markdown" }
     );
 }
+
 //---------------------------------------------------------------------
 import { LectorImagen } from './OCR.js';  // IMPORTA LA FUNCION OCR
 //---------------------------------------------------------------------
@@ -280,8 +280,6 @@ bot.on('callback_query', async (query) => {
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
-    // Ignorar si es un comando 
-/*     if (msg.text && msg.text.startsWith('/')) return;*/
     //ignorara mensaje de botones 
     if (msg.data) return;
 
