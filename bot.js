@@ -279,16 +279,16 @@ bot.on('callback_query', async (query) => {
 // --- funcionalidad inmediata ---
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
-
+    const texto = (msg.text || '').trim();
     // Ignorar si es un comando 
-/*     if (msg.text && msg.text.startsWith('/')) return;*/
+    if (msg.text && msg.text.startsWith('/')) return;
     //ignorara mensaje de botones 
     if (msg.data) return;
 
     // Si no hay texto (por ejemplo stickers, audios), ignorar
     if (!msg.text) return;
 
-    const texto = msg.text.trim();
+
     const palabras = texto.split(/\s+/);
 
     console.log(`Mensaje recibido: "${texto}" con ${palabras.length} palabras`);
@@ -331,11 +331,22 @@ bot.onText(/\/agregar (\w+) (\w+)/, async (msg, match) => {
     }
     const palabra = match[1];
     const nivelRiesgo = match[2];
+
+    //validacion d entrada 
+
+    const regexPalabra = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_]+$/;
+    const nivelesPermitidos = ['bajo', 'medio', 'alto'];
+    if (!regexPalabra.test(palabra) || !nivelesPermitidos.includes(nivelRiesgo.toLowerCase())) {
+        return bot.sendMessage(chatId, '⚠️ Formato inválido o nivel de riesgo no permitido. Usa: /agregar palabra [bajo|medio|alto]');
+    }
+
+
     try {
         await db.agregarPalabra(palabra, nivelRiesgo);
         await cargarPalabras(); // Actualiza caché
         bot.sendMessage(chatId, `✅ La palabra "${palabra}" con nivel "${nivelRiesgo}" ha sido agregada.`);
-    } catch {
+    } catch (error) {
+        console.error("Error al agregar palabra:", error);
         bot.sendMessage(chatId, '❌ Error al agregar la palabra.');
     }
 });
