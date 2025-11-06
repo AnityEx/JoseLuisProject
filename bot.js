@@ -408,6 +408,16 @@ bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
     }
     const palabra = match[1];
     const nuevoNivel = match[2];
+
+
+    //validacion d entrada 
+
+    const regexPalabra = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_]+$/;
+    const nivelesPermitidos = ['bajo', 'medio', 'alto'];
+    if (!regexPalabra.test(palabra) || !nivelesPermitidos.includes(nuevoNivel.toLowerCase())) {
+        return bot.sendMessage(chatId, '⚠️ Formato inválido o nivel de riesgo no permitido. Usa: /agregar palabra [bajo|medio|alto]');
+    }
+
     try {
         await db.actualizarPalabra(palabra, nuevoNivel);
         await cargarPalabras(); // Actualiza caché
