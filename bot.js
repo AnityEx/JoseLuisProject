@@ -3,6 +3,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import stringSimilarity from 'string-similarity';
 import db from './db.js';
 import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
+import { Limiter } from '@mediv0/rate-limit';
 
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const bot = new TelegramBot(token, { polling: true });
@@ -276,43 +277,74 @@ bot.on('callback_query', async (query) => {
     }
 });
 
+// ---- delimitacion de cantidad de mensajes ----
+const limiter = new Limiter("memory", {
+    interval: 10 * 1000,  //" "cantidad de segundos
+    max: 5,  //maximo de solicitudes en ese lapso
+});
+
+
 // --- funcionalidad inmediata ---
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
- 
     const texto = (msg.text || '').trim();
-    // Ignorar si es un comando 
-    if (msg.text && msg.text.startsWith('/')) return;
+
+    try {
+        // verifica si el usuario excedió el límite
+        const limit = await limiter.limit(chatId);
+
+        if (limit.over) {
+            const segundosRestantes = Math.ceil((limit.reset - Date.now()) / 1000);
+            return bot.sendMessage(
+                chatId,
+                `🕒 Has superado el límite de mensajes.\nPor favor espera *${segundosRestantes} segundos* antes de volver a intentarlo.`,
+                { parse_mode: "Markdown" }
+            );
+        }
+    
+        //limitacion solicitudes
+        await limiter.limit(chatId);
 
 
-    //ignorara mensaje de botones 
-    if (msg.data) return;
 
-    // Si no hay texto (por ejemplo stickers, audios), ignorar
-    if (!msg.text) return;
+        // Ignorar si es un comando 
+        if (msg.text && msg.text.startsWith('/')) return;
+
+        //ignorara mensaje de botones 
+        if (msg.data) return;
+
+        // Si no hay texto (por ejemplo stickers, audios), ignorar
+        if (!msg.text) return;
 
 
-    const palabras = texto.split(/\s+/);
+        const palabras = texto.split(/\s+/);
 
-    console.log(`Mensaje recibido: "${texto}" con ${palabras.length} palabras`);
+        console.log(`Mensaje recibido: "${texto}" con ${palabras.length} palabras`);
 
-    // 📌 SI ES MENSAJE CORTO → SALUDO
-    if (palabras.length <= 2) {
+        // 📌 SI ES MENSAJE CORTO → SALUDO
+        if (palabras.length <= 2) {
+            bot.sendMessage(chatId,
+                `👋 ¡Hola! Bienvenido al bot de *deteccion de estafas *.\n\nEnvíame el mensaje que sospeches de fraude y lo analizaré.`,
+                { parse_mode: "Markdown" }
+            );
+            return;
+        }
+
+        // 📌 SI ES MENSAJE LARGO → ANALIZAR AUTOMÁTICAMENTE
         bot.sendMessage(chatId,
-            `👋 ¡Hola! Bienvenido al bot de *deteccion de estafas *.\n\nEnvíame el mensaje que sospeches de fraude y lo analizaré.`,
+            `🤖 Gracias por tu mensaje.\n🔍 *Estoy analizando el contenido...*`,
             { parse_mode: "Markdown" }
         );
-        return;
+
+        await analizarMensaje(msg);
+
+   } catch (error) {
+        console.error("Error inesperado del limitador:", error);
+        bot.sendMessage(chatId, "⚠️ Ocurrió un error con el limitador. Intenta de nuevo más tarde.");
     }
-
-    // 📌 SI ES MENSAJE LARGO → ANALIZAR AUTOMÁTICAMENTE
-    bot.sendMessage(chatId,
-        `🤖 Gracias por tu mensaje.\n🔍 *Estoy analizando el contenido...*`,
-        { parse_mode: "Markdown" }
-    );
-
-    await analizarMensaje(msg);
 });
+
+
 // ----------------------------- COMANDOS ------------------------------
 
 bot.onText(/\/detectar (.+)/, async (msg, match) => {

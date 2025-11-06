@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "Bot de Telegram",
   "dependencies": {
+    "@mediv0/rate-limit": "^0.2.9",
     "axios": "^1.12.2",
     "dotenv": "^17.2.2",
     "form-data": "^4.0.4",
