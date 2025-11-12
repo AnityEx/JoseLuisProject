@@ -4,6 +4,16 @@ import stringSimilarity from 'string-similarity';
 import db from './db.js';
 import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
 import { Limiter } from '@mediv0/rate-limit';
+import Redis from 'ioredis';
+
+//puerto de redis
+const redis = new Redis({
+    host: "127.0.0.1",
+    port: 6379,
+})
+/*redis.set("test", "hola redis!");
+const value = await redis.get("test");
+console.log("🔹 Redis dice:", value);*/
 
 const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
 const bot = new TelegramBot(token, { polling: true });
@@ -278,34 +288,37 @@ bot.on('callback_query', async (query) => {
 });
 
 // ---- delimitacion de cantidad de mensajes ----
-const limiter = new Limiter("memory", {
-    interval: 10 * 1000,  //" "cantidad de segundos
-    max: 5,  //maximo de solicitudes en ese lapso
-});
+const Max_MSGS =5; //maximo de mensajes 
+const interval = 10; //segundos
 
 
 // --- funcionalidad inmediata ---
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const texto = (msg.text || '').trim();
+    const now = Math.floor(Date.now() / 1000); //tiempo 
+
+    const key = `rate_limit:${chatId}`;
 
     try {
         // verifica si el usuario excedió el límite
-        const limit = await limiter.limit(chatId);
+        const count = await redis.incr(key);
 
-        if (limit.over) {
-            const segundosRestantes = Math.ceil((limit.reset - Date.now()) / 1000);
+        if (count === 1) {
+           //Primera solicitud 
+           await redis.expire(key, interval);
+        }
+         
+        if (count > Max_MSGS) {
+            const ttl = await redis.ttl(key);
             return bot.sendMessage(
                 chatId,
-                `🕒 Has superado el límite de mensajes.\nPor favor espera *${segundosRestantes} segundos* antes de volver a intentarlo.`,
-                { parse_mode: "Markdown" }
+                `🕒 Has superado el límite de mensajes.\nPor favor espera *${ttl} segundos* antes de volver a intentarlo.`,
+        { parse_mode: "Markdown" }
             );
         }
     
-        //limitacion solicitudes
-        await limiter.limit(chatId);
-
-
+    
 
         // Ignorar si es un comando 
         if (msg.text && msg.text.startsWith('/')) return;
@@ -339,7 +352,7 @@ bot.on('message', async (msg) => {
         await analizarMensaje(msg);
 
    } catch (error) {
-        console.error("Error inesperado del limitador:", error);
+        console.error("Error en redis o limitador:", error);
         bot.sendMessage(chatId, "⚠️ Ocurrió un error con el limitador. Intenta de nuevo más tarde.");
     }
 });
