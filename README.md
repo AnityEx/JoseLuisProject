@@ -43,5 +43,3 @@ docker start redis-bot
 
 para correr el bot usa
 nodemon bot.js
-
-

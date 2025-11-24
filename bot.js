@@ -91,14 +91,14 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
 
     /* ---------- 1.5 clasificador BERTo ---------- */
     let IntuyeJoseLuisBERTo;
-async function BERToClasifier() {
-    IntuyeJoseLuisBERTo = await Clasificador(texto);
-    console.log("➡️ Intuición José Luis BERTo:", IntuyeJoseLuisBERTo);
-    return
-}
+    async function BERToClasifier() {
+        IntuyeJoseLuisBERTo = await Clasificador(texto);
+        console.log("➡️ Intuición José Luis BERTo:", IntuyeJoseLuisBERTo);
+        return
+    }
 
-// Llamas a la función aquí
-BERToClasifier();
+    // Llamas a la función aquí
+    BERToClasifier();
 
 
     /* ---------- 2. Enlaces ---------- */
@@ -502,6 +502,7 @@ bot.onText(/\/actualizar (\w+) (\w+)/, async (msg, match) => {
 function ExtractorDeLinks(texto) {
     //magia negra para extraer links de un texto a base de comparar texto con "regex" funca para todo
     const urlRegex = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63}(?::\d{1,5})?(?:\/[^\s"'<>]*)?)/gi;
+    const urlRegexSimple = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63})\b/gi;
     const link = texto.match(urlRegex);
     console.log(link);
     return link || []; // Nunca devolver null, siempre array
