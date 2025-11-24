@@ -5,6 +5,7 @@ import db from './db.js';
 import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
 import { Limiter } from '@mediv0/rate-limit';
 import Redis from 'ioredis';
+import { Clasificador } from './BERTo.js';
 
 //puerto de redis
 const redis = new Redis({
@@ -67,18 +68,20 @@ import { evaluarNivelRiesgo } from './detectar_Nivel.js';
 //----------------------------------------------------------------------
 
 async function analizarMensaje(msg) {// Función para manejar el análisis de cada mensaje
-    const arregloPalabras = cachePalabras;
-    const coincidencias = [];
-    const texto = (msg.text || '').toLowerCase();
     const chatId = msg.chat.id;
-    const mensaje = texto.split(/\s+/);// separa el mensaje por espacios
-    console.log("Mensaje recibido:", msg.text);
-    if (arregloPalabras.length === 0) {
+    const texto = (msg.text || '').toLowerCase();
+    const ArregloTexto = texto.split(/\s+/);// separa el mensaje por espacios
+
+    /* ---------- 1. Palabras clave ---------- */
+    if (cachePalabras.length === 0) {
         bot.sendMessage(chatId, '❌ No se pueden detectar fraudes. No hay palabras clave cargadas.');
         return;
     }
-    for (const palabrasMensaje of mensaje) {
-        for (const palabraClave of arregloPalabras) {
+
+    const coincidencias = [];
+
+    for (const palabrasMensaje of ArregloTexto) {
+        for (const palabraClave of cachePalabras) {
             const sim = stringSimilarity.compareTwoStrings(palabrasMensaje, palabraClave.palabra);
             if (sim >= similaridad) {
                 coincidencias.push(`${palabrasMensaje} ≈ ${palabraClave.palabra} (${(sim * 100).toFixed(1)}%)`);
@@ -86,29 +89,50 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
         }
     }
 
+    /* ---------- 1.5 clasificador BERTo ---------- */
+    let IntuyeJoseLuisBERTo;
+async function BERToClasifier() {
+    IntuyeJoseLuisBERTo = await Clasificador(texto);
+    console.log("➡️ Intuición José Luis BERTo:", IntuyeJoseLuisBERTo);
+    return
+}
+
+// Llamas a la función aquí
+BERToClasifier();
+
+
+    /* ---------- 2. Enlaces ---------- */
     const LinksSospechosos = ExtractorDeLinks(msg.text || '');//array de links
 
     async function checklinks() {
         try {
             const urlMap = await safeApi.checkMulti(LinksSospechosos);
             for (let url in urlMap) {
-                console.log(urlMap[url] ? `🔴 LINK MALCIOSO ${url} ` : `🟡 link seguro ${url}`);
+                console.log(urlMap[url] ? `🔴 MALCIOSO ${url} ` : `🟡 Seguro ${url}`);
             }
             return urlMap || [];
-
         } catch (err) {
-            console.log('Something went wrong.');
-            console.log(err);
+            console.error('Error al comprobar enlaces', err);
             return [];
         }
     }
     const urlMap = await checklinks();
+
     const linksMaliciosos = Object.entries(urlMap)
         .filter(([_, esMalicioso]) => esMalicioso)
         .map(([url]) => url);
-    const resultadoRiesgo = evaluarNivelRiesgo(coincidencias, cachePalabras, linksMaliciosos);
 
 
+
+    /* ---------- 3. Nivel de riesgo ---------- */
+    const resultadoRiesgo = evaluarNivelRiesgo(
+
+        coincidencias,
+        cachePalabras,
+        linksMaliciosos);
+
+
+    /* ---------- 4. Resumen a enviar ---------- */
 
     {
         const LinksOrdenados = Object.entries(urlMap)
@@ -116,6 +140,7 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
 
         const resumen = `
 🔍 *Resultado del análisis:*
+- Intuición: ${Math.round(IntuyeJoseLuisBERTo.prediction[0].score * 100)}% ${IntuyeJoseLuisBERTo.prediction[0].label}
 - Palabras clave detectadas: ${coincidencias.length}
 - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
 - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
@@ -141,7 +166,7 @@ ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.j
         });
 
     }
-
+    /* ---------- 5. Contador de mensajes por chat ---------- */
     // contador incremento 
     if (!contadorMensajes[chatId]) {
         contadorMensajes[chatId] = 1;
@@ -225,8 +250,7 @@ bot.on('photo', async (msg) => {
         }
 
 
-
-        /*         bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta*/
+        /*bot.sendMessage(chatId, `${textoOCR}`);// Aquí, enviamos el resultado del OCR como respuesta*/
         await analizarMensaje({ ...msg, text: textoOCR });
 
 
@@ -288,7 +312,7 @@ bot.on('callback_query', async (query) => {
 });
 
 // ---- delimitacion de cantidad de mensajes ----
-const Max_MSGS =5; //maximo de mensajes 
+const Max_MSGS = 5; //maximo de mensajes 
 const interval = 10; //segundos
 
 
@@ -305,20 +329,20 @@ bot.on('message', async (msg) => {
         const count = await redis.incr(key);
 
         if (count === 1) {
-           //Primera solicitud 
-           await redis.expire(key, interval);
+            //Primera solicitud 
+            await redis.expire(key, interval);
         }
-         
+
         if (count > Max_MSGS) {
             const ttl = await redis.ttl(key);
             return bot.sendMessage(
                 chatId,
                 `🕒 Has superado el límite de mensajes.\nPor favor espera *${ttl} segundos* antes de volver a intentarlo.`,
-        { parse_mode: "Markdown" }
+                { parse_mode: "Markdown" }
             );
         }
-    
-    
+
+
 
         // Ignorar si es un comando 
         if (msg.text && msg.text.startsWith('/')) return;
@@ -351,7 +375,7 @@ bot.on('message', async (msg) => {
 
         await analizarMensaje(msg);
 
-   } catch (error) {
+    } catch (error) {
         console.error("Error en redis o limitador:", error);
         bot.sendMessage(chatId, "⚠️ Ocurrió un error con el limitador. Intenta de nuevo más tarde.");
     }
