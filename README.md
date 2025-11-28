@@ -1,45 +1,55 @@
-# JoseLuisProject
-Bot de Telegram
+# JoseLuisProject 
+Bot de Telegram para leer mensajes y verificar si son estafas
 
-dependencias LA INTUICION NO SIRVE SIN EL ARCHIVO "model.safetensors" dentro de la carpeta API/berto, NO USAR A MENOS QUE SE DESCARGUE https://drive.google.com/file/d/1piID6BVnf0MRg99FYZ9OhpxNnmw8O271/view?usp=sharing
+## PASOS PARA CORRER EL BOT
 
--una vez clonado desde vscode vete a la terminal y escribe
+### Dependencias
+ LA INTUICION NO SIRVE SIN EL ARCHIVO "model.safetensors" dentro de la carpeta API/berto/, NO USAR A MENOS QUE SE DESCARGUE https://drive.google.com/file/d/1piID6BVnf0MRg99FYZ9OhpxNnmw8O271/view?usp=sharing
 
-npm install
-npm install ioredis
+## VSCode
+- Clona el repositorio
 
-esto hará que se instalen todas las librerias npm que se usan
 
-INSTALA PYTHON PARA USAR EL LECTOR DE IMAGENES y EL CLASIFICADOR INTELIGENTE BERTO
-(ESTO solo linux)
-curl -fsSL https://pyenv.run | bash 
-pyenv install 3.11.14
-pyenv local 3.11.14
+- instala python 3.11
 
-si tienes python 3.11.14 local o global entonces pon cada linea una por una en el terminal 
-
+- inicia el environment e instala las dependencias
+```
 (linux)
 python -m venv venv
 source venv/bin/activate
+
 pip install -r requirements.txt
-instalo pip de torchvision torch y transformers 
-
-
+```
+```
 (windows)
 python -m venv venv
 .\venv\Scripts\activate
+
 pip install -r .\requirements.txt
+```
 
+- instala las dependencias javascript
+```
+npm install
+```
 
-primero corre el server api
+- instala docker
 
-python .\API\custom_rapidocr_api.py --workers 2
+https://www.docker.com/
 
-luego instala docker y corre estos para que funcione el limite de mensajes por persona
-
+- corre en cualquier terminal:
+```
 docker run --name redis-bot -p 6379:6379 -d redis
 docker start redis-bot
+```
+- corre el server api
+```
+python .\API\toda_api.py --workers 2
+```
 
 
-para correr el bot usa
-nodemon bot.js
+
+- corre el bot
+```
+node bot.js
+```
