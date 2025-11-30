@@ -6,7 +6,7 @@ Bot de Telegram para leer mensajes y verificar si son estafas
 ### Dependencias
  LA INTUICION NO SIRVE SIN EL ARCHIVO "model.safetensors" dentro de la carpeta API/berto/, NO USAR A MENOS QUE SE DESCARGUE 
 
- https://drive.google.com/file/d/1rwT_DAZMy8q8H2GEwD-1Lazc-KF5t-5h/view?usp=sharing
+https://drive.google.com/file/d/1V7aohPJOSO23YyUoNmg2R0xfMAZKDGWU/view?usp=sharing
 
 ## VSCode
 - Clona el repositorio
