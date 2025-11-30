@@ -13,6 +13,12 @@ from PIL import Image
 from rapidocr import RapidOCR
 import yaml
 
+import time
+import logging
+logging.basicConfig(level=logging.INFO)
+
+
+
 #librerias necesarias para clasificador BERT
 #pip install transformers torch torchvision
 from pydantic import BaseModel
@@ -52,9 +58,11 @@ class OCRAPIUtils:
         self, ori_img: Image.Image, use_det=None, use_cls=None, use_rec=None, **kwargs
     ) -> Dict:
         img = np.array(ori_img)
+        start = time.time()#time measurement
         ocr_res = self.ocr(
-            img, use_det=use_det, use_cls=use_cls, use_rec=use_rec, **kwargs
-        )
+            img, use_det=use_det, use_cls=use_cls, use_rec=use_rec, **kwargs)
+        elapsed = time.time() - start#time measurement
+        logging.info(f"OCR took {elapsed:.3f} seconds")#time measurement
 
         if ocr_res.boxes is None or ocr_res.txts is None or ocr_res.scores is None:
             return {}

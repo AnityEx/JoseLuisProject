@@ -8,8 +8,8 @@ export async function LectorImagen(imagen = '',language = 'en') {
         let filename;
 
         if (imagen.startsWith('http')) {
-            console.log('DESCARGANDO IMAGEN');
-            const response = await axios.get(imagen, {
+/*             console.log('DESCARGANDO IMAGEN');
+ */            const response = await axios.get(imagen, {
                 responseType: 'arraybuffer',
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
             });
@@ -26,14 +26,14 @@ export async function LectorImagen(imagen = '',language = 'en') {
         form.append('image_file', fileStream, { filename, contentType: mimeType });
         form.append('language', language);  // Pass only one language
 
-        console.log('ENVIANDO IMAGEN AL SERVIDOR OCR');
-        const ocrResponse = await axios.post('http://localhost:9003/ocr', form, {
+/*         console.log('ENVIANDO IMAGEN AL SERVIDOR OCR');
+ */        const ocrResponse = await axios.post('http://localhost:9003/ocr', form, {
             headers: form.getHeaders(),
             timeout: 20000,
         });
 
-        console.log('✅ IMAGEN LEIDA:', ocrResponse.data);
-
+/*         console.log('✅ IMAGEN LEIDA:', ocrResponse.data);
+ */
         let extractedText = [];
         for (const key in ocrResponse.data) {
             if (ocrResponse.data[key].rec_txt) {

@@ -45,3 +45,11 @@ para correr el bot usa
 nodemon bot.js
 
 
+node bot.js
+[dotenv@17.2.2] injecting env (1) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+(node:197808) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/lana/Escritorio/JoseLuisProject/bot.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/lana/Escritorio/JoseLuisProject/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:197808) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+Conectado a MongoDB Atlas
