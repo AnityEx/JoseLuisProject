@@ -40,4 +40,42 @@ async function actualizarPalabra(palabra, nuevoNivel) {
     await collection.updateOne({ palabra }, { $set: { nivel_riesgo: nuevoNivel } });
 }
 
-module.exports = { connectDB, obtenerPalabrasClave, agregarPalabra, eliminarPalabra, actualizarPalabra };
+// ==========================
+//   WHITELIST
+// ==========================
+
+// Obtener todos los dominios seguros
+async function obtenerWhiteList() {
+    const collection = client.db('ia').collection('whitelist');
+    return await collection.find({ activo: true }).toArray();
+}
+
+// Agregar un dominio oficial
+async function agregarDominioWhiteList(url) {
+    const collection = client.db('ia').collection('whitelist');
+    await collection.insertOne({ url, activo: true });
+}
+
+// Eliminar un dominio
+async function eliminarDominioWhiteList(url) {
+    const collection = client.db('ia').collection('whitelist');
+    await collection.deleteOne({ url });
+}
+
+// Desactivar un dominio (por si quieres manejarlo así)
+async function desactivarDominioWhiteList(url) {
+    const collection = client.db('ia').collection('whitelist');
+    await collection.updateOne({ url }, { $set: { activo: false } });
+}
+
+module.exports = { 
+    connectDB, 
+    obtenerPalabrasClave, 
+    agregarPalabra, 
+    eliminarPalabra, 
+    actualizarPalabra,
+    obtenerWhiteList,
+    agregarDominioWhiteList,
+    eliminarDominioWhiteList,
+    desactivarDominioWhiteList
+};
