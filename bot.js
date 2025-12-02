@@ -21,7 +21,7 @@ const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE
 const bot = new TelegramBot(token, { polling: true });
 
 
-const similaridad = 0.65;// Umbral de detección
+const similaridad = 0.85;// Umbral de detección
 
 let mensajesDetectados = 0;// Estadísticas
 
@@ -33,8 +33,8 @@ const contadorMensajes = [];
 
 const ADMIN_IDS = [
     8423246471, //id German
-    7280579876, //id Lana
-    5951322472 //id Alisson 
+/*     7280579876, //id Lana
+ */    5951322472 //id Alisson 
 ];
 
 //funcion de admins 
@@ -243,12 +243,10 @@ ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.j
 const menuOptions = (chatId) => {
     const isAdmin = esAdmin(chatId);
     const menu = [
-        [
+/*         [
             { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' }
-
-        ],
+        ], */
         [
-
             { text: '📜 Ayuda', callback_data: 'help' }
         ],
     ];
@@ -276,7 +274,7 @@ const menuOptions = (chatId) => {
 function generarMenu(chatId) {// Menú inline
     bot.sendMessage(
         chatId,
-        '👋 ¡Hola! Soy tu bot de **detección de fraude**.\n\nElige una opción:',
+        '👋 ¡Hola! Bienvenido al bot de deteccion de *estafas bancarias.*\n\n Envíame el mensaje que sospeches de fraude y lo analizaré.',
         { ...menuOptions(chatId), parse_mode: "Markdown" }
     );
 }
@@ -348,7 +346,7 @@ bot.on('callback_query', async (query) => {
         if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '🔄 Envía en este formato:\n/actualizar [palabra] [nuevo_nivel_riesgo]');
     } else if (action === 'help') {
-        bot.sendMessage(chatId, '📝 Comandos disponibles:\n/start\n/detectar [mensaje]');
+        bot.sendMessage(chatId, 'Bienvenido a D.A.L.A \n\nVisita nuestra pagina web para más información!\n\nhttps://dala-ajm.pages.dev/ (sitio interino)\n\n📝 Comandos disponibles:\n/start\n');
     }
     else if (action === 'start_menu') {
         bot.sendMessage(chatId, 'Menú principal.', menuOptions(chatId));
@@ -424,7 +422,7 @@ if (linksDetectados.length > 0) {
         // 📌 SI ES MENSAJE CORTO → SALUDO
         if (palabras.length <= 2) {
             bot.sendMessage(chatId,
-                `👋 ¡Hola! Bienvenido al bot de *deteccion de estafas *.\n\nEnvíame el mensaje que sospeches de fraude y lo analizaré.`,
+                `👋 ¡Hola! Bienvenido al bot de deteccion de *estafas bancarias*.\n\nEnvíame el mensaje que sospeches de fraude y lo analizaré.`,
                 { parse_mode: "Markdown" }
             );
             return;
