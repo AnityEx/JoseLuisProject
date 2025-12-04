@@ -3,17 +3,24 @@ Bot de Telegram para leer mensajes y verificar si son estafas
 
 ## Tecnologias utilizadas
 -Python v3.11
+
 -Node.js v22.20
+
 -FastAPI v0.120.0
+
 -Docker v28.5.1
+
 -MongoDB v8.0.16
 
 ### Base de datos 
 Se aloja en MongoDB Atlas
 
 -Cluster Cluster0Joseluis
+
 -Proveedor Microsoft Azure
+
 -Region California(Westus)
+
 -Tipo de cluster Replica set(3 nodos)
 
 ## PASOS PARA CORRER EL BOT
