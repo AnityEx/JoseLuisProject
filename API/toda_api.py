@@ -1,5 +1,9 @@
 #api mezclada de custom_rapidocr_api.py y bert_api.py para correr solo un servicio
 #librerias necesarias para rapidocr
+from dotenv import load_dotenv
+import os
+from pathlib import Path
+
 import argparse
 import base64
 import io
@@ -17,15 +21,17 @@ import time
 import logging
 logging.basicConfig(level=logging.INFO)
 
+# carga .env
+env_path = Path("../.env")
+load_dotenv(dotenv_path=env_path)
 
 
 #librerias necesarias para clasificador BERT
-#pip install transformers torch torchvision
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from huggingface_hub import login, get_token
 # Hugging Face login
-TOKEN = "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"
+TOKEN = os.getenv("HF_fullaccess")
 login(token=TOKEN)
 fullaccess = get_token()
 

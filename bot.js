@@ -1,12 +1,14 @@
 'use strict';
+require('dotenv').config();
 import TelegramBot from 'node-telegram-bot-api';
 import stringSimilarity from 'string-similarity';
 import db from './db.js';
-import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: 'AIzaSyCjSUgyjlIEvVLTo_LLopPMtI3ybSLhrj4' });
+import SafeBrowsingLookup from './libraries/SafeBrowsingLookup.js'; const safeApi = SafeBrowsingLookup({ apiKey: process.env.googleapi });
 import { Limiter } from '@mediv0/rate-limit';
 import Redis from 'ioredis';
 import { Clasificador } from './BERTo.js';
 import { obtenerWhiteList } from './db.js';
+
 
 //puerto de redis
 const redis = new Redis({
@@ -17,7 +19,7 @@ const redis = new Redis({
 const value = await redis.get("test");
 console.log("🔹 Redis dice:", value);*/
 
-const token = '8305739458:AAHzOd_jbPr8gvzZ3kovxoQspXmpoSZWnSU';// TOKEN Y BOT DE TELEGRAM (usa el tuyo desde .env si prefieres)
+const token = process.env.Telegram_token;// TOKEN Y BOT DE TELEGRAM
 const bot = new TelegramBot(token, { polling: true });
 
 
@@ -33,8 +35,8 @@ const contadorMensajes = [];
 
 const ADMIN_IDS = [
     8423246471, //id German
-/*     7280579876, //id Lana
- */    5951322472 //id Alisson 
+    /*     7280579876, //id Lana*/
+    5951322472 //id Alisson 
 ];
 
 //funcion de admins 
@@ -60,7 +62,7 @@ let urlsSeguras = [];
 async function cargarWhiteList() {
     const whiteList = await obtenerWhiteList();
 
-    urlsSeguras = whiteList.map(item => item.url); 
+    urlsSeguras = whiteList.map(item => item.url);
     console.log("WhiteList cargada:", urlsSeguras);
 }
 
@@ -122,34 +124,34 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     /* ---------- 2. Enlaces ---------- */
     const LinksSospechosos = ExtractorDeLinks(msg.text || '');//array de links
 
-//verificacion de links primero por la whitelist 
-//luego para a safebrowsing
-// --- VALIDAR SI ALGÚN LINK ES OFICIAL (WhiteList) ---
-const linksOficiales = LinksSospechosos.filter(url => urlsSeguras.includes(url));
+    //verificacion de links primero por la whitelist 
+    //luego para a safebrowsing
+    // --- VALIDAR SI ALGÚN LINK ES OFICIAL (WhiteList) ---
+    const linksOficiales = LinksSospechosos.filter(url => urlsSeguras.includes(url));
 
-if (linksOficiales.length > 0) {
-    // Si detectamos un link oficial  mensaje seguro de una vez
-    console.log("🟢 Enlace oficial detectado:", linksOficiales);
+    if (linksOficiales.length > 0) {
+        // Si detectamos un link oficial  mensaje seguro de una vez
+        console.log("🟢 Enlace oficial detectado:", linksOficiales);
 
-    bot.sendMessage(chatId, `
+        bot.sendMessage(chatId, `
 🔐 Enlace oficial detectado:
 ${linksOficiales.join("\n")}
 
 El mensaje parece legítimo porque contiene enlaces verificados.
     `, {
-        parse_mode: "HTML",
-        reply_markup: {
-            inline_keyboard: [
-                [
-                    { text: '⬅️ Menu', callback_data: 'start_menu' },
-                    { text: '🔄 Analizar otro', callback_data: 'detect_fraud' }
+            parse_mode: "HTML",
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '⬅️ Menu', callback_data: 'start_menu' },
+                        { text: '🔄 Analizar otro', callback_data: 'detect_fraud' }
+                    ]
                 ]
-            ]
-        }
-    });
+            }
+        });
 
-    return; // 🚀 No seguimos analizando (se detiene aquí)
-}
+        return; // 🚀 No seguimos analizando (se detiene aquí)
+    }
 
 
     async function checklinks() {
@@ -186,13 +188,13 @@ El mensaje parece legítimo porque contiene enlaces verificados.
         const LinksOrdenados = Object.entries(urlMap)
             .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
 
-            //aqui se agrega una validacion para evitar un valor vacio y que esto active el catch del limitador
+        //aqui se agrega una validacion para evitar un valor vacio y que esto active el catch del limitador
         const resumen = `
         
 🔍 *Resultado del análisis:*
 - - Intuición: ${IntuyeJoseLuisBERTo?.prediction?.[0]
-    ? `${Math.round(IntuyeJoseLuisBERTo.prediction[0].score * 100)}% ${IntuyeJoseLuisBERTo.prediction[0].label}`
-    : "⚠️ Sin datos"} 
+                ? `${Math.round(IntuyeJoseLuisBERTo.prediction[0].score * 100)}% ${IntuyeJoseLuisBERTo.prediction[0].label}`
+                : "⚠️ Sin datos"} 
 - Palabras clave detectadas: ${coincidencias.length}
 - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
 - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
@@ -243,9 +245,9 @@ ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.j
 const menuOptions = (chatId) => {
     const isAdmin = esAdmin(chatId);
     const menu = [
-/*         [
-            { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' }
-        ], */
+        /*         [
+                    { text: '🔍 Detectar fraude', callback_data: 'detect_fraud' }
+                ], */
         [
             { text: '📜 Ayuda', callback_data: 'help' }
         ],
@@ -409,16 +411,16 @@ bot.on('message', async (msg) => {
         console.log(`Mensaje recibido: "${texto}" con ${palabras.length} palabras`);
 
         // EXTRAER LINKS ANTES DE HACER CUALQUIER OTRA COSA
-const linksDetectados = ExtractorDeLinks(texto);
+        const linksDetectados = ExtractorDeLinks(texto);
 
-if (linksDetectados.length > 0) {
-    bot.sendMessage(
-        chatId,
-        `🔍 Detecté un enlace en tu mensaje.\nEstoy analizándolo...`
-    );
-    await analizarMensaje(msg);
-    return;
-}
+        if (linksDetectados.length > 0) {
+            bot.sendMessage(
+                chatId,
+                `🔍 Detecté un enlace en tu mensaje.\nEstoy analizándolo...`
+            );
+            await analizarMensaje(msg);
+            return;
+        }
         // 📌 SI ES MENSAJE CORTO → SALUDO
         if (palabras.length <= 2) {
             bot.sendMessage(chatId,
