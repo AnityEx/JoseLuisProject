@@ -30,6 +30,10 @@ Se aloja en MongoDB Atlas
 
 https://drive.google.com/file/d/1V7aohPJOSO23YyUoNmg2R0xfMAZKDGWU/view?usp=sharing
 
+## .env
+las apis son de paga o por persona asi que tienes que tener un archivo .env en la raiz, se proporciona un .env-dummy renombra a ".env" y pega las apis dentro 
+
+
 ## VSCode
 - Clona el repositorio
 

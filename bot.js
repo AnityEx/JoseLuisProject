@@ -351,7 +351,7 @@ bot.on('callback_query', async (query) => {
         if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '🔄 Envía en este formato:\n/actualizar [palabra] [nuevo_nivel_riesgo]');
     } else if (action === 'help') {
-        bot.sendMessage(chatId, '👋 ¡Hola! Bienvenido a D.A.L.A \n\nVisita nuestra pagina web para más información sobre como lidiar con estafas!\n\nhttps://dala-ajm.pages.dev/ \n(sitio interino)\n\n📝 Comandos disponibles:\n/start\n');
+        bot.sendMessage(chatId, '👋 ¡Hola! Bienvenido a D.A.L.A \n\nVisita nuestra pagina web para informarte sobre como lidiar con estafas!\n\nhttps://dala-ajm.pages.dev/ \n(sitio interino)\n\n📝 Comandos disponibles:\n/start\n');
     }
     else if (action === 'start_menu') {
         bot.sendMessage(chatId, 'Menú principal.', menuOptions(chatId));
