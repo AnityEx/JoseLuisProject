@@ -1,5 +1,5 @@
-# JoseLuisProject 
-Bot de Telegram para leer mensajes y verificar si son estafas
+# D.A.L.A Bot (JoseLuisProject) 
+Bot de Telegram para leer mensajes y verificar si son estafas bancarias
 
 ## Tecnologias utilizadas
 -Python v3.11

@@ -3,6 +3,10 @@
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+# carga .env
+env_path = Path(".env")
+load_dotenv(dotenv_path=env_path)
+
 
 import argparse
 import base64
@@ -21,9 +25,6 @@ import time
 import logging
 logging.basicConfig(level=logging.INFO)
 
-# carga .env
-env_path = Path("../.env")
-load_dotenv(dotenv_path=env_path)
 
 
 #librerias necesarias para clasificador BERT

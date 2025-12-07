@@ -1,5 +1,4 @@
 'use strict';
-require('dotenv').config();
 import TelegramBot from 'node-telegram-bot-api';
 import stringSimilarity from 'string-similarity';
 import db from './db.js';
@@ -92,7 +91,7 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
 
     /* ---------- 1. Palabras clave ---------- */
     if (cachePalabras.length === 0) {
-        bot.sendMessage(chatId, '❌ No se pueden detectar fraudes. No hay palabras clave cargadas.');
+        bot.sendMessage(chatId, '❌ Error. No hay palabras clave cargadas.');
         return;
     }
 
@@ -108,10 +107,10 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     }
 
     /* ---------- 1.5 clasificador BERTo ---------- */
-    let IntuyeJoseLuisBERTo;
+    let IntuicionBETO;
     async function BERToClasifier() {
-        IntuyeJoseLuisBERTo = await Clasificador(texto);
-        console.log("➡️ Intuición José Luis BERTo:", IntuyeJoseLuisBERTo);
+        IntuicionBETO = await Clasificador(texto);
+        console.log("➡️ Intuición:", IntuicionBETO);
         return
     }
 
@@ -185,25 +184,28 @@ El mensaje parece legítimo porque contiene enlaces verificados.
     /* ---------- 4. Resumen a enviar ---------- */
 
     {
-        const LinksOrdenados = Object.entries(urlMap)
-            .map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
+        const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
 
+        //valores de intuicion
+        const label = IntuicionBETO?.prediction?.[0]?.label ?? "⚠️ Sin datos";
+        const scoreP = IntuicionBETO?.prediction?.[0]?.score;
+        const percent = scoreP !== undefined ? `${Math.round(scoreP * 100)}%` : "";
         //aqui se agrega una validacion para evitar un valor vacio y que esto active el catch del limitador
+
+        /*         - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
+        - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
+        - Riesgo BAJO: ${resultadoRiesgo.conteo.bajo} 
+        ${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
+        */
         const resumen = `
         
 🔍 *Resultado del análisis:*
-- - Intuición: ${IntuyeJoseLuisBERTo?.prediction?.[0]
-                ? `${Math.round(IntuyeJoseLuisBERTo.prediction[0].score * 100)}% ${IntuyeJoseLuisBERTo.prediction[0].label}`
-                : "⚠️ Sin datos"} 
-- Palabras clave detectadas: ${coincidencias.length}
-- Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
-- Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
-- Riesgo BAJO: ${resultadoRiesgo.conteo.bajo}
+- Intuición: ${percent} ${label}
+- Palabras Peligrosas: ${coincidencias.length}
 - Enlaces maliciosos: ${resultadoRiesgo.conteo.maliciosos > 0 ? '🔴 Sí' : '🟢 No'}
 
 ${resultadoRiesgo.mensaje}
 
-${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
 ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.join('\n')}` : ''}
 `;
 
@@ -212,8 +214,9 @@ ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.j
             reply_markup: {
                 inline_keyboard: [
                     [
-                        { text: '⬅️ Menu', callback_data: 'start_menu' },
-                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
+                        { text: '📜 Ayuda', callback_data: 'help' },
+/*                         { text: '⬅️ Menu', callback_data: 'start_menu' },
+ */                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
                     ]
                 ]
             }
@@ -276,7 +279,7 @@ const menuOptions = (chatId) => {
 function generarMenu(chatId) {// Menú inline
     bot.sendMessage(
         chatId,
-        '👋 ¡Hola! Bienvenido al bot de deteccion de *estafas bancarias.*\n\n Envíame el mensaje que sospeches de fraude y lo analizaré.',
+        '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.',
         { ...menuOptions(chatId), parse_mode: "Markdown" }
     );
 }
@@ -348,7 +351,7 @@ bot.on('callback_query', async (query) => {
         if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '🔄 Envía en este formato:\n/actualizar [palabra] [nuevo_nivel_riesgo]');
     } else if (action === 'help') {
-        bot.sendMessage(chatId, 'Bienvenido a D.A.L.A \n\nVisita nuestra pagina web para más información!\n\nhttps://dala-ajm.pages.dev/ (sitio interino)\n\n📝 Comandos disponibles:\n/start\n');
+        bot.sendMessage(chatId, '👋 ¡Hola! Bienvenido a D.A.L.A \n\nVisita nuestra pagina web para más información sobre como lidiar con estafas!\n\nhttps://dala-ajm.pages.dev/ \n(sitio interino)\n\n📝 Comandos disponibles:\n/start\n');
     }
     else if (action === 'start_menu') {
         bot.sendMessage(chatId, 'Menú principal.', menuOptions(chatId));
@@ -421,16 +424,16 @@ bot.on('message', async (msg) => {
             await analizarMensaje(msg);
             return;
         }
-        // 📌 SI ES MENSAJE CORTO → SALUDO
+        //  SI ES MENSAJE CORTO → SALUDO
         if (palabras.length <= 2) {
             bot.sendMessage(chatId,
-                `👋 ¡Hola! Bienvenido al bot de deteccion de *estafas bancarias*.\n\nEnvíame el mensaje que sospeches de fraude y lo analizaré.`,
+                '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.',
                 { parse_mode: "Markdown" }
             );
             return;
         }
 
-        // 📌 SI ES MENSAJE LARGO → ANALIZAR AUTOMÁTICAMENTE
+        //  SI ES MENSAJE LARGO → ANALIZAR AUTOMÁTICAMENTE
         bot.sendMessage(chatId,
             `🤖 Gracias por tu mensaje.\n🔍 *Estoy analizando el contenido...*`,
             { parse_mode: "Markdown" }
