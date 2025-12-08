@@ -179,50 +179,120 @@ El mensaje parece legítimo porque contiene enlaces verificados.
         coincidencias,
         cachePalabras,
         linksMaliciosos);
-
-
     /* ---------- 4. Resumen a enviar ---------- */
 
-    {
-        const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
+    const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
 
-        //valores de intuicion
-        const label = IntuicionBETO?.prediction?.[0]?.label ?? "⚠️ Sin datos";
+    //valores de intuicion
+    /*     const label = IntuicionBETO?.prediction?.[0]?.label ?? "⚠️ Sin datos";
         const scoreP = IntuicionBETO?.prediction?.[0]?.score;
-        const percent = scoreP !== undefined ? `${Math.round(scoreP * 100)}%` : "";
-        //aqui se agrega una validacion para evitar un valor vacio y que esto active el catch del limitador
+        const percent = scoreP !== undefined ? `${Math.round(scoreP * 100)}%` : ""; */
+    //aqui se agrega una validacion para evitar un valor vacio y que esto active el catch del limitador
 
+    /*         - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
+    - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
+    - Riesgo BAJO: ${resultadoRiesgo.conteo.bajo} 
+    ${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
+    */
+    /*     const resumen = `
+            
+    🔍 *Resultado del análisis:*
+    - Intuición: ${percent} ${label}
+    - Palabras Peligrosas: ${coincidencias.length}
+    - Enlaces maliciosos: ${resultadoRiesgo.conteo.maliciosos > 0 ? '🔴 Sí' : '🟢 No'}
         /*         - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
         - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
         - Riesgo BAJO: ${resultadoRiesgo.conteo.bajo} 
         ${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
-        */
-        const resumen = `
         
-🔍 *Resultado del análisis:*
-- Intuición: ${percent} ${label}
-- Palabras Peligrosas: ${coincidencias.length}
+    ${resultadoRiesgo.mensaje}
+    
+    ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.join('\n')}` : ''}
+    `;
+    */
+    function riesgoTotal(resultadoRiesgo, coincidencias, intuicionBETO) {
+        let riesgo = 0;
+
+        // 1. Enlaces maliciosos
+        if (resultadoRiesgo.conteo.maliciosos > 0) {
+            riesgo += 2;
+        }
+
+        // 2. Palabras peligrosas
+        riesgo += coincidencias.length * 0.1;
+
+        // 3. Multiplicador por riesgo
+        if (resultadoRiesgo.conteo.alto > 0) {
+            riesgo *= 1.8;
+        } else if (resultadoRiesgo.conteo.medio > 0) {
+            riesgo *= 1.2;
+        }
+
+        // 4. BETO
+        const prediction = intuicionBETO?.prediction?.[0];
+        const score = prediction?.score ?? 0;
+        const label = prediction?.label ?? "Desconocido";
+
+        if (score >= 0.7) {
+            if (label === "Malicioso") {
+                riesgo += 0.3;
+            } else if (label === "Seguro") {
+                riesgo -= 0.2;
+            }
+        }
+
+        // Limitar riesgo entre 0 y 1
+        riesgo = Math.max(0, Math.min(riesgo, 1));
+
+        // Preparar percent
+        const percent = score ? `${Math.round(score * 100)}%` : "⚠️ Sin datos";
+
+        // Preparar resumen (igual que tu código viejo)
+        const LinksOrdenados = Object.entries(resultadoRiesgo.urlMap ?? {}).map(
+            ([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 no levanta sospecha'} → ${url}`
+        );
+
+        //OVERRIDE POR SI HAY URL MALAS
+        let percentFinal = percent;
+        let labelFinal = label;
+        const hayLinksMaliciosos = (resultadoRiesgo.conteo.maliciosos ?? 0) > 0;
+
+        if (hayLinksMaliciosos) { // tu condición de override
+            percentFinal = '100%';
+            labelFinal = 'Malicioso';
+        }
+        const resumen = `
+🔍 Resultado del análisis:
+- Intuición: ${percentFinal} ${labelFinal}
+- Palabras sospechosas: ${coincidencias.length}
 - Enlaces maliciosos: ${resultadoRiesgo.conteo.maliciosos > 0 ? '🔴 Sí' : '🟢 No'}
+
+- RIESGO TOTAL: ${Math.round(riesgo * 100)}%
 
 ${resultadoRiesgo.mensaje}
 
 ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.join('\n')}` : ''}
 `;
 
-        bot.sendMessage(chatId, resumen, {
-            parse_mode: "HTML", //se cambio el Markdow ya que este delimitaba los caracteres especiales 
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        { text: '📜 Ayuda', callback_data: 'help' },
+        return resumen;
+    }
+    const resumen = riesgoTotal(resultadoRiesgo, coincidencias, IntuicionBETO);
+
+
+    bot.sendMessage(chatId, resumen, {
+        parse_mode: "HTML", //se cambio el Markdow ya que este delimitaba los caracteres especiales 
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    { text: '📜 Ayuda', callback_data: 'help' },
 /*                         { text: '⬅️ Menu', callback_data: 'start_menu' },
  */                        { text: '🔄 Reintentar', callback_data: 'detect_fraud' }
-                    ]
                 ]
-            }
-        });
+            ]
+        }
+    });
 
-    }
+
     /* ---------- 5. Contador de mensajes por chat ---------- */
     // contador incremento 
     if (!contadorMensajes[chatId]) {

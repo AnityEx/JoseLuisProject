@@ -25,18 +25,18 @@ export function evaluarNivelRiesgo(palabrasDetectadas = [], palabrasDB = [], lin
     let nivelFinal = '';
     let mensaje = '';
 
-    if (riesgoAlto >= 3 || (riesgoAlto >= 1 && hayLinksMaliciosos)) {
+    if (riesgoAlto >= 3 || (hayLinksMaliciosos)) {
         nivelFinal = 'alto';
-        mensaje = `🚨 Este mensaje es *ALTAMENTE peligroso*. Se detectaron múltiples palabras de alto riesgo y/o enlaces maliciosos.`;
-    } else if (riesgoMedio >= 2 || riesgoAlto === 1 || hayLinksMaliciosos) {
+        mensaje = `🚨 Este mensaje es peligroso. Se detectaron múltiples palabras de alto riesgo y/o enlaces maliciosos.`;
+    } else if (riesgoMedio >= 2 || riesgoAlto >= 1) {
         nivelFinal = 'medio';
-        mensaje = `⚠️ Este mensaje es *moderadamente sospechoso*. Ten precaución antes de interactuar con él.`;
+        mensaje = `⚠️ Este mensaje es moderadamente sospechoso. Ten precaución antes de interactuar con él.`;
     } else if (riesgoBajo > 0 || palabrasDetectadas.length > 0) {
         nivelFinal = 'bajo';
-        mensaje = `🟡 Este mensaje contiene algunas palabras de riesgo bajo. No parece peligroso, pero se recomienda cuidado.`;
+        mensaje = `🟡 Este mensaje contiene algunas palabras de riesgo. No parece peligroso, pero se recomienda cuidado.`;
     } else {
         nivelFinal = 'ninguno';
-        mensaje = `✅ El mensaje no contiene elementos sospechosos ni enlaces maliciosos.`;
+        mensaje = `✅ El mensaje no parece sospechososo.`;
     }
 
     return {
