@@ -81,3 +81,14 @@ python .\API\toda_api.py --workers 2
 ```
 node bot.js
 ```
+
+##COMO INICIAR CUANDO YA TIENES TODO
+- inicia el environment 
+```.\venv\Scripts\activate```
+- corre el servidor 
+```python .\API\toda_api.py --workers 2```
+corre docker desktop y luego redis
+```docker start redis-bot```
+y luego corre el bot
+```node bot.js```
+
