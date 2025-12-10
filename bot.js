@@ -119,39 +119,32 @@ async function analizarMensaje(msg) {// Función para manejar el análisis de ca
     //  berto se tarda uno o dos milisegundos en enviar lo datos cuando es mensaje largo 
     await BERToClasifier();
 
-
     /* ---------- 2. Enlaces ---------- */
-    const LinksSospechosos = ExtractorDeLinks(msg.text || '');//array de links
-
     //verificacion de links primero por la whitelist 
     //luego para a safebrowsing
     // --- VALIDAR SI ALGÚN LINK ES OFICIAL (WhiteList) ---
-    const linksOficiales = LinksSospechosos.filter(url => urlsSeguras.includes(url));
+    const LinksSospechosos = ExtractorDeLinks(msg.text || '');//array de links
+    const LinksSospechososSimples = ExtractorDeLinksSimples(msg.text || '');//array de links
+    let linkOficial = false;
+    console.log("Links extraídos:", LinksSospechosos);
 
-    if (linksOficiales.length > 0) {
-        // Si detectamos un link oficial  mensaje seguro de una vez
-        console.log("🟢 Enlace oficial detectado:", linksOficiales);
-
-        bot.sendMessage(chatId, `
-🔐 Enlace oficial detectado:
-${linksOficiales.join("\n")}
-
-El mensaje parece legítimo porque contiene enlaces verificados.
-    `, {
-            parse_mode: "HTML",
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        { text: '⬅️ Menu', callback_data: 'start_menu' },
-                        { text: '🔄 Analizar otro', callback_data: 'detect_fraud' }
-                    ]
-                ]
-            }
-        });
-
-        return; // 🚀 No seguimos analizando (se detiene aquí)
+    function normalizarURL(url) {
+        return url.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
     }
+    const urlsSegurasNormalizadas = urlsSeguras.map(u => normalizarURL(u));
 
+
+    const linksOficiales = LinksSospechososSimples.filter(url =>
+        urlsSegurasNormalizadas.includes(normalizarURL(url))
+    );
+    async function listablanca() {
+        if (linksOficiales.length > 0) {
+            console.log("🟢 Enlace oficial detectado:", linksOficiales);
+            linkOficial = true;
+        }
+    }
+    const esOficial = await listablanca();
+    if (esOficial) return; // detiene el resto del análisis
 
     async function checklinks() {
         try {
@@ -183,33 +176,7 @@ El mensaje parece legítimo porque contiene enlaces verificados.
 
     const LinksOrdenados = Object.entries(urlMap).map(([url, malicioso]) => `${malicioso ? '🔴 MALICIOSO' : '🟡 Parece Seguro'} → ${url}`);
 
-    //valores de intuicion
-    /*     const label = IntuicionBETO?.prediction?.[0]?.label ?? "⚠️ Sin datos";
-        const scoreP = IntuicionBETO?.prediction?.[0]?.score;
-        const percent = scoreP !== undefined ? `${Math.round(scoreP * 100)}%` : ""; */
-    //aqui se agrega una validacion para evitar un valor vacio y que esto active el catch del limitador
 
-    /*         - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
-    - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
-    - Riesgo BAJO: ${resultadoRiesgo.conteo.bajo} 
-    ${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
-    */
-    /*     const resumen = `
-            
-    🔍 *Resultado del análisis:*
-    - Intuición: ${percent} ${label}
-    - Palabras Peligrosas: ${coincidencias.length}
-    - Enlaces maliciosos: ${resultadoRiesgo.conteo.maliciosos > 0 ? '🔴 Sí' : '🟢 No'}
-        /*         - Riesgo ALTO: ${resultadoRiesgo.conteo.alto}
-        - Riesgo MEDIO: ${resultadoRiesgo.conteo.medio}
-        - Riesgo BAJO: ${resultadoRiesgo.conteo.bajo} 
-        ${coincidencias.length > 0 ? `\n🔑 *Coincidencias encontradas:* \n${coincidencias.join('\n')}` : ''}
-        
-    ${resultadoRiesgo.mensaje}
-    
-    ${LinksOrdenados.length > 0 ? `\n🔗 *Enlaces analizados:* \n${LinksOrdenados.join('\n')}` : ''}
-    `;
-    */
     function riesgoTotal(resultadoRiesgo, coincidencias, intuicionBETO) {
         let riesgo = 0;
 
@@ -266,6 +233,7 @@ El mensaje parece legítimo porque contiene enlaces verificados.
 - Intuición: ${percentFinal} ${labelFinal}
 - Palabras sospechosas: ${coincidencias.length}
 - Enlaces maliciosos: ${resultadoRiesgo.conteo.maliciosos > 0 ? '🔴 Sí' : '🟢 No'}
+- Enlaces bancarios Oficiales: ${linkOficial === true ? '🟢 Sí' : '🟡 No'}
 
 - RIESGO TOTAL: ${Math.round(riesgo * 100)}%
 
@@ -349,7 +317,7 @@ const menuOptions = (chatId) => {
 function generarMenu(chatId) {// Menú inline
     bot.sendMessage(
         chatId,
-        '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.',
+        '🔍 Envía un mensaje y lo analizaré para ver si es fraudulento.',
         { ...menuOptions(chatId), parse_mode: "Markdown" }
     );
 }
@@ -389,7 +357,11 @@ bot.on('photo', async (msg) => {
 
 bot.onText(/\/start/, (msg) => {// /start
     const chatId = msg.chat.id;
-    generarMenu(chatId);
+    bot.sendMessage(
+        chatId,
+        '👋¡Hola! Bienvenido a D.A.L.A \n Envía un mensaje y lo analizaré para ver si es fraudulento.',
+        { ...menuOptions(chatId), parse_mode: "Markdown" }
+    );
 });
 // --- CALLBACKS ---
 bot.on('callback_query', async (query) => {
@@ -421,7 +393,28 @@ bot.on('callback_query', async (query) => {
         if (!esAdmin(chatId)) return bot.sendMessage(chatId, '❌ No tienes permiso para usar esta opción.');
         bot.sendMessage(chatId, '🔄 Envía en este formato:\n/actualizar [palabra] [nuevo_nivel_riesgo]');
     } else if (action === 'help') {
-        bot.sendMessage(chatId, '👋 ¡Hola! Bienvenido a D.A.L.A \n\nVisita nuestra pagina web para informarte sobre como lidiar con estafas!\n\nhttps://dala-ajm.pages.dev/ \n(sitio interino)\n\n📝 Comandos disponibles:\n/start\n');
+        const mensaje = `
+👋 ¡Hola! Bienvenido a D.A.L.A
+
+Visita nuestra página web para informarte sobre nosotros y cómo lidiar con estafas.
+https://dala-ajm.pages.dev/
+(sitio interino)
+
+🔍 Como leer análisis:
+Intuición: Resultado de nuestra IA
+
+Palabras sospechosas: Cantidad de términos sospechosos
+
+Enlaces maliciosos: Indica si se encontraron enlaces peligrosos
+
+Enlaces oficiales: Bancos verificados (no indica seguridad total)
+
+RIESGO TOTAL: calculado a partir de todos nuestros filtros.
+
+📝 Comandos disponibles:
+/start
+`;
+        bot.sendMessage(chatId, mensaje);
     }
     else if (action === 'start_menu') {
         bot.sendMessage(chatId, 'Menú principal.', menuOptions(chatId));
@@ -495,9 +488,9 @@ bot.on('message', async (msg) => {
             return;
         }
         //  SI ES MENSAJE CORTO → SALUDO
-        if (palabras.length <= 2) {
+        if (palabras.length <= 1) {
             bot.sendMessage(chatId,
-                '🔍 Escribe un mensaje y lo analizaré para ver si es fraudulento.',
+                '🔍 Envía un mensaje y lo analizaré para ver si es fraudulento.',
                 { parse_mode: "Markdown" }
             );
             return;
@@ -640,6 +633,14 @@ function ExtractorDeLinks(texto) {
     const urlRegex = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63}(?::\d{1,5})?(?:\/[^\s"'<>]*)?)/gi;
     const urlRegexSimple = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63})\b/gi;
     const link = texto.match(urlRegex);
+    console.log(link);
+    return link || []; // Nunca devolver null, siempre array
+}
+
+function ExtractorDeLinksSimples(texto) {
+    //magia negra para extraer links de un texto a base de comparar texto con "regex" funca para todo
+    const urlRegexSimple = /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,63})\b/gi;
+    const link = texto.match(urlRegexSimple);
     console.log(link);
     return link || []; // Nunca devolver null, siempre array
 }

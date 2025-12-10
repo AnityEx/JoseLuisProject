@@ -4,7 +4,7 @@ require('dotenv').config(); // Asegúrate de que tu archivo .env esté bien conf
 // Obtén la URI desde el archivo .env
 const uri = process.env.MONGODB_URI;
 
-const client = new MongoClient(uri, { });
+const client = new MongoClient(uri, {});
 
 // Función para conectar a MongoDB
 async function connectDB() {
@@ -47,13 +47,13 @@ async function actualizarPalabra(palabra, nuevoNivel) {
 // Obtener todos los dominios seguros
 async function obtenerWhiteList() {
     const collection = client.db('ia').collection('whitelist');
-    return await collection.find({ activo: true }).toArray();
+    return await collection.find({}).toArray();
 }
 
 // Agregar un dominio oficial
 async function agregarDominioWhiteList(url) {
     const collection = client.db('ia').collection('whitelist');
-    await collection.insertOne({ url, activo: true });
+    await collection.insertOne({ url });
 }
 
 // Eliminar un dominio
@@ -65,14 +65,14 @@ async function eliminarDominioWhiteList(url) {
 // Desactivar un dominio (por si quieres manejarlo así)
 async function desactivarDominioWhiteList(url) {
     const collection = client.db('ia').collection('whitelist');
-    await collection.updateOne({ url }, { $set: { activo: false } });
+    await collection.updateOne({ url },);
 }
 
-module.exports = { 
-    connectDB, 
-    obtenerPalabrasClave, 
-    agregarPalabra, 
-    eliminarPalabra, 
+module.exports = {
+    connectDB,
+    obtenerPalabrasClave,
+    agregarPalabra,
+    eliminarPalabra,
     actualizarPalabra,
     obtenerWhiteList,
     agregarDominioWhiteList,
